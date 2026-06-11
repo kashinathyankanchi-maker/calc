@@ -168,7 +168,7 @@ class _StatsScreenState extends State<StatsScreen> {
               const SizedBox(height: 16.0),
               Text(
                 'Search GitHub profiles to use their stats in your calculations!',
-                textAlign: Center,
+                textAlign: TextAlign.center,
                 style: GoogleFonts.inter(color: textMuted, fontSize: 15.0),
               ),
             ],
