@@ -568,7 +568,7 @@
       border-top: 1px solid var(--github-border);
       background-color: var(--github-card);
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr; /* 3 tabs */
       align-items: center;
     }
 
@@ -579,7 +579,7 @@
       justify-content: center;
       gap: 4px;
       color: var(--github-muted);
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 500;
       cursor: pointer;
       height: 100%;
@@ -619,7 +619,7 @@
     <div class="info-sidebar">
       <h1>GitCalc</h1>
       <p>
-        A premium GitHub-themed Calculator built as an Android Flutter app. It offers a standard calculation interface and a developer search utility.
+        A premium GitHub-themed Calculator built as an Android Flutter app. It offers a standard calculation interface, a developer search utility, and a timber log CBM calculator.
       </p>
       
       <ul class="features-list">
@@ -627,15 +627,15 @@
         <li>GitHub dark-palette aesthetic</li>
         <li>Math-expressions parsing engine</li>
         <li>Integrates live profile stats with your equations</li>
+        <li>Dedicated Wood Log Cubic Meter (CBM) Calculator</li>
       </ul>
 
       <div class="instructions-box">
         <h3>How to use the preview:</h3>
         <ol>
           <li>Standard Calculator operates in the first tab.</li>
-          <li>Click the <strong>Dev Stats</strong> tab at the bottom of the device.</li>
-          <li>Search any GitHub username (e.g. <code>octocat</code>, <code>google</code>).</li>
-          <li><strong>Tap any stat</strong> box (e.g. followers) to load its value directly into the calculator's current expression!</li>
+          <li>Search developer statistics in the second tab (<strong>Dev Stats</strong>) and click metrics to load values.</li>
+          <li>Calculate log volume in the third tab (<strong>CBM Calc</strong>) and insert values directly into your equations!</li>
         </ol>
       </div>
     </div>
@@ -788,6 +788,50 @@
             </div>
           </div>
 
+          <!-- CBM CALCULATOR TAB -->
+          <div id="cbm-tab" class="tab-view">
+            <div class="stats-container" style="padding-top: 16px;">
+              <div class="profile-card" style="flex-direction: column; gap: 6px;">
+                <span style="font-size: 1rem; font-weight: bold; color: var(--github-text);">Wood Log Volume Calculator</span>
+                <p style="font-size: 0.8rem; color: var(--github-muted);">Calculate log volume in Cubic Meters (m³).</p>
+              </div>
+
+              <!-- Inputs -->
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 0.85rem; font-weight: 600; color: var(--github-text);">Girth (m)</label>
+                <input type="number" id="cbm-girth" class="search-input" placeholder="Girth in meters (e.g. 4.2)...">
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <label style="font-size: 0.85rem; font-weight: 600; color: var(--github-text);">Length (m)</label>
+                <input type="number" id="cbm-length" class="search-input" placeholder="Length in meters (e.g. 5.0)...">
+              </div>
+
+              <!-- Toggle formula -->
+              <div class="profile-card" style="justify-content: space-between; align-items: center; padding: 12px 16px;">
+                <div>
+                  <span id="cbm-formula-title" style="font-size: 0.85rem; font-weight: 600; color: var(--github-text);">Quarter Girth Standard</span>
+                  <p id="cbm-formula-sub" style="font-size: 0.75rem; color: var(--git-blue); font-family: 'Fira Code', monospace; margin-top: 2px;">(Girth² × Length) ÷ 16</p>
+                </div>
+                <input type="checkbox" id="cbm-formula-toggle" checked style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--git-blue);" onchange="toggleCbmFormula()">
+              </div>
+
+              <div id="cbm-error" style="display: none; color: var(--git-red); font-size: 0.82rem; text-align: center; font-weight: 500;"></div>
+
+              <div style="display: flex; gap: 10px; margin-top: 6px;">
+                <button class="search-btn" style="flex: 1; height: 44px;" onclick="calculateCbm()">Calculate</button>
+                <button class="btn" style="width: 44px; height: 44px; font-size: 1rem;" onclick="clearCbm()">🔄</button>
+              </div>
+
+              <!-- Result Card -->
+              <div id="cbm-result-card" class="contrib-section" style="display: none; align-items: center; justify-content: center; text-align: center; border-color: var(--git-green); padding: 16px; margin-top: 10px;">
+                <span style="font-size: 0.82rem; color: var(--github-muted); font-weight: 500;">Log Volume</span>
+                <span id="cbm-result-val" style="font-family: 'Fira Code', monospace; font-size: 1.8rem; font-weight: 800; color: var(--git-green); margin: 6px 0;">0 m³</span>
+                <button class="search-btn" style="background-color: var(--git-green); color: white; border-color: #1e702e; font-size: 0.85rem; height: 36px; padding: 0 16px; margin-top: 4px;" onclick="exportCbmToCalc()">Insert to Calculator</button>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- Bottom Navigation Bar -->
@@ -805,6 +849,12 @@
             </svg>
             <span>Dev Stats</span>
           </div>
+          <div id="nav-cbm" class="nav-item" onclick="switchTab(2)">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2L6 10H9V14H5L12 20L19 14H15V10H18L12 2Z M11 20V22H13V20H11Z"/>
+            </svg>
+            <span>CBM Calc</span>
+          </div>
         </div>
       </div>
     </div>
@@ -815,6 +865,8 @@
     let expression = "";
     let isEvaluated = false;
     let fetchedData = null;
+    let useQuarterGirth = true;
+    let cbmResult = 0;
 
     // Dom elements
     const expressionEl = document.getElementById("expression");
@@ -901,21 +953,30 @@
     function switchTab(index) {
       const calcTab = document.getElementById("calculator-tab");
       const statsTab = document.getElementById("stats-tab");
+      const cbmTab = document.getElementById("cbm-tab");
       const navCalc = document.getElementById("nav-calc");
       const navStats = document.getElementById("nav-stats");
+      const navCbm = document.getElementById("nav-cbm");
+
+      calcTab.classList.remove("active");
+      statsTab.classList.remove("active");
+      cbmTab.classList.remove("active");
+      navCalc.classList.remove("active");
+      navStats.classList.remove("active");
+      navCbm.classList.remove("active");
 
       if (index === 0) {
         calcTab.classList.add("active");
-        statsTab.classList.remove("active");
         navCalc.classList.add("active");
-        navStats.classList.remove("active");
         titleEl.innerText = "GitCalc";
-      } else {
-        calcTab.classList.remove("active");
+      } else if (index === 1) {
         statsTab.classList.add("active");
-        navCalc.classList.remove("active");
         navStats.classList.add("active");
         titleEl.innerText = "GitStats Lookup";
+      } else if (index === 2) {
+        cbmTab.classList.add("active");
+        navCbm.classList.add("active");
+        titleEl.innerText = "CBM Calculator";
       }
     }
 
@@ -1024,6 +1085,108 @@
         cell.classList.add("level-" + level);
         container.appendChild(cell);
       }
+    }
+
+    // --- CBM CALCULATIONS ---
+    function toggleCbmFormula() {
+      const toggle = document.getElementById("cbm-formula-toggle");
+      const title = document.getElementById("cbm-formula-title");
+      const sub = document.getElementById("cbm-formula-sub");
+      
+      useQuarterGirth = toggle.checked;
+      if (useQuarterGirth) {
+        title.innerText = "Quarter Girth Standard";
+        sub.innerText = "(Girth² × Length) ÷ 16";
+      } else {
+        title.innerText = "Linear Formula";
+        sub.innerText = "(Girth × Length) ÷ 16";
+      }
+      
+      if (document.getElementById("cbm-result-card").style.display === "flex") {
+        calculateCbm();
+      }
+    }
+
+    function calculateCbm() {
+      const girthVal = parseFloat(document.getElementById("cbm-girth").value);
+      const lengthVal = parseFloat(document.getElementById("cbm-length").value);
+      const errorEl = document.getElementById("cbm-error");
+      const cardEl = document.getElementById("cbm-result-card");
+      const valEl = document.getElementById("cbm-result-val");
+
+      errorEl.style.display = "none";
+      cardEl.style.display = "none";
+
+      if (isNaN(girthVal) || isNaN(lengthVal) || girthVal <= 0 || lengthVal <= 0) {
+        errorEl.innerText = "Please enter valid positive numbers.";
+        errorEl.style.display = "block";
+        return;
+      }
+
+      let volume;
+      if (useQuarterGirth) {
+        volume = (girthVal * girthVal * lengthVal) / 16;
+      } else {
+        volume = (girthVal * lengthVal) / 16;
+      }
+
+      cbmResult = volume;
+      
+      // Format result
+      let formatted;
+      if (volume % 1 === 0) {
+        formatted = volume.toString();
+      } else {
+        let str = volume.toString();
+        if (str.includes('.') && str.split('.')[1].length > 6) {
+          formatted = volume.toFixed(6);
+        } else {
+          formatted = str;
+        }
+      }
+
+      valEl.innerText = formatted + " m³";
+      cardEl.style.display = "flex";
+    }
+
+    function clearCbm() {
+      document.getElementById("cbm-girth").value = "";
+      document.getElementById("cbm-length").value = "";
+      document.getElementById("cbm-error").style.display = "none";
+      document.getElementById("cbm-result-card").style.display = "none";
+      cbmResult = 0;
+    }
+
+    function exportCbmToCalc() {
+      if (cbmResult === 0) return;
+      
+      let formatted;
+      if (cbmResult % 1 === 0) {
+        formatted = cbmResult.toString();
+      } else {
+        let str = cbmResult.toString();
+        if (str.includes('.') && str.split('.')[1].length > 6) {
+          formatted = cbmResult.toFixed(6);
+        } else {
+          formatted = str;
+        }
+      }
+
+      // Append value to expression
+      const lastChar = expression.charAt(expression.length - 1);
+      const isNumber = /[0-9.]/.test(lastChar);
+
+      if (expression !== "" && isNumber) {
+        expression += "+" + formatted;
+      } else {
+        expression += formatted;
+      }
+
+      expressionEl.innerText = expression;
+      isEvaluated = false;
+
+      // Switch back to calc screen
+      switchTab(0);
     }
   </script>
 </body>

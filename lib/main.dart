@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/calculator_screen.dart';
 import 'screens/stats_screen.dart';
+import 'screens/cbm_screen.dart';
 import 'calculator_logic.dart';
 
 void main() {
@@ -126,6 +127,14 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           });
         },
       ),
+      CbmScreen(
+        onInsertValue: _onInsertValue,
+        onSwitchToCalculator: () {
+          setState(() {
+            _activeTabIndex = 0;
+          });
+        },
+      ),
     ];
 
     return Scaffold(
@@ -136,7 +145,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
             const Icon(Icons.code, color: gitBlue, size: 24),
             const SizedBox(width: 10),
             Text(
-              _activeTabIndex == 0 ? 'GitCalc' : 'GitStats Lookup',
+              _activeTabIndex == 0
+                  ? 'GitCalc'
+                  : _activeTabIndex == 1
+                      ? 'GitStats Lookup'
+                      : 'CBM Calculator',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -188,6 +201,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               icon: Icon(Icons.code),
               activeIcon: Icon(Icons.code, color: gitBlue),
               label: 'Dev Stats',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.forest),
+              activeIcon: Icon(Icons.forest, color: gitBlue),
+              label: 'CBM Calc',
             ),
           ],
         ),
