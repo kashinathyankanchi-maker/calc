@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitCalc - Interactive Device Preview</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-color: #040406;
+      --github-dark: #0d1117;
+      --github-card: #161b22;
+      --github-border: #30363d;
+      --github-text: #c9d1d9;
+      --github-muted: #8b949e;
+      --git-blue: #58a6ff;
+      --git-blue-hover: #388bfd;
+      --git-green: #238636;
+      --git-green-hover: #2ea043;
+      --git-red: #da3633;
+      --git-red-hover: #f85149;
+      --btn-dark: #21262d;
+      --btn-dark-hover: #30363d;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      background-image: radial-gradient(circle at 50% 30%, #171d2b 0%, #040406 70%);
+      font-family: 'Inter', sans-serif;
+      color: var(--github-text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    /* Container layout */
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-evenly;
+      gap: 50px;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+        gap: 30px;
+      }
+    }
+
+    /* Info Sidebar */
+    .info-sidebar {
+      max-width: 450px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .info-sidebar h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.8rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #ffffff 30%, var(--git-blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .info-sidebar p {
+      color: var(--github-muted);
+      line-height: 1.6;
+      font-size: 1.05rem;
+    }
+
+    .features-list {
+      list-style-type: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 10px 0;
+    }
+
+    .features-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+    }
+
+    .features-list li::before {
+      content: "✓";
+      color: var(--git-green);
+      font-weight: bold;
+    }
+
+    .instructions-box {
+      background: rgba(22, 27, 34, 0.6);
+      border: 1px solid var(--github-border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 10px;
+    }
+
+    .instructions-box h3 {
+      font-size: 1rem;
+      color: var(--git-blue);
+      margin-bottom: 8px;
+    }
+
+    .instructions-box ol {
+      margin-left: 20px;
+      color: var(--github-muted);
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Phone Device Mockup */
+    .phone-device {
+      position: relative;
+      width: 360px;
+      height: 740px;
+      background-color: #000000;
+      border: 12px solid #2d3139;
+      border-radius: 40px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Phone Camera Punch Hole */
+    .phone-camera {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 12px;
+      background-color: #101010;
+      border-radius: 50%;
+      z-index: 100;
+    }
+
+    /* Screen Container */
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background-color: var(--github-dark);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      height: 24px;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--github-muted);
+      z-index: 99;
+      background-color: var(--github-dark);
+    }
+
+    .status-bar .right-icons {
+      display: flex;
+      gap: 6px;
+    }
+
+    /* App Header */
+    .app-header {
+      height: 56px;
+      border-bottom: 1px solid var(--github-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background-color: var(--github-dark);
+    }
+
+    .app-header h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--github-text);
+    }
+
+    .app-header svg {
+      color: var(--git-blue);
+      fill: currentColor;
+    }
+
+    /* Tab Switcher Area */
+    .tab-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .tab-view {
+      display: none;
+      height: 100%;
+      flex-direction: column;
+    }
+
+    .tab-view.active {
+      display: flex;
+    }
+
+    /* --- CALCULATOR TAB STYLE --- */
+    .display-area {
+      flex: 1;
+      padding: 20px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: flex-end;
+      border-bottom: 1px solid var(--github-border);
+      background-color: rgba(9, 13, 22, 0.4);
+      min-height: 160px;
+    }
+
+    .expression-display {
+      font-family: 'Fira Code', monospace;
+      font-size: 1.8rem;
+      color: var(--github-text);
+      max-width: 100%;
+      word-wrap: break-word;
+      word-break: break-all;
+      text-align: right;
+      line-height: 1.3;
+      margin-bottom: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .result-display {
+      font-family: 'Fira Code', monospace;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--git-blue);
+      text-align: right;
+      line-height: 1.1;
+    }
+
+    .keypad-area {
+      flex: 2;
+      background-color: var(--github-card);
+      padding: 12px;
+      display: grid;
+      grid-template-rows: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .row-5 {
+      grid-template-columns: 1fr 2fr 1fr;
+    }
+
+    .btn {
+      background-color: var(--btn-dark);
+      border: 1px solid var(--github-border);
+      border-radius: 8px;
+      color: var(--github-text);
+      font-size: 1.25rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .btn:hover {
+      background-color: var(--btn-dark-hover);
+    }
+
+    .btn:active {
+      transform: scale(0.94);
+    }
+
+    .btn.operator {
+      color: var(--git-blue);
+    }
+
+    .btn.clear {
+      background-color: var(--git-red);
+      color: #ffffff;
+      border-color: #b62224;
+    }
+
+    .btn.clear:hover {
+      background-color: var(--git-red-hover);
+    }
+
+    .btn.equal {
+      background-color: var(--git-green);
+      color: #ffffff;
+      border-color: #1e702e;
+    }
+
+    .btn.equal:hover {
+      background-color: var(--git-green-hover);
+    }
+
+    .btn.del {
+      background-color: #6e7681;
+      color: #ffffff;
+      border-color: #575e67;
+      font-size: 1rem;
+    }
+
+    /* --- STATS TAB STYLE --- */
+    .search-area {
+      padding: 16px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .search-input {
+      flex: 1;
+      background-color: var(--github-card);
+      border: 1px solid var(--github-border);
+      border-radius: 8px;
+      color: var(--github-text);
+      padding: 10px 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: var(--git-blue);
+    }
+
+    .search-btn {
+      background-color: var(--git-blue);
+      border: none;
+      border-radius: 8px;
+      color: #0d1117;
+      padding: 10px 16px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-btn:hover {
+      background-color: var(--git-blue-hover);
+    }
+
+    .stats-container {
+      flex: 1;
+      padding: 0 16px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+    }
+
+    /* Welcome / Empty Stats State */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--github-muted);
+      gap: 16px;
+    }
+
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      color: var(--github-muted);
+      stroke: currentColor;
+    }
+
+    .empty-state p {
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    /* Profile Card */
+    .profile-card {
+      background-color: var(--github-card);
+      border: 1px solid var(--github-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .profile-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 1px solid var(--github-border);
+      background-color: #21262d;
+    }
+
+    .profile-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .profile-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--github-text);
+    }
+
+    .profile-username {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: var(--git-blue);
+    }
+
+    .profile-bio {
+      font-size: 0.8rem;
+      color: var(--github-muted);
+      margin-top: 4px;
+      line-height: 1.3;
+    }
+
+    .stats-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--github-muted);
+      font-weight: 600;
+    }
+
+    .stats-hint svg {
+      color: var(--git-blue);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-box {
+      background-color: var(--github-card);
+      border: 1px solid var(--github-border);
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-box:hover {
+      border-color: var(--git-blue);
+      background-color: rgba(33, 38, 45, 0.4);
+    }
+
+    .stat-box:active {
+      transform: scale(0.97);
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--github-muted);
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-family: 'Fira Code', monospace;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--git-blue);
+    }
+
+    /* Contribution Grid Box */
+    .contrib-section {
+      background-color: var(--github-card);
+      border: 1px solid var(--github-border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .contrib-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .contrib-grid {
+      display: grid;
+      grid-template-columns: repeat(15, 1fr);
+      gap: 3px;
+    }
+
+    .contrib-cell {
+      aspect-ratio: 1;
+      border-radius: 2px;
+    }
+
+    .contrib-legend {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 3px;
+      font-size: 0.65rem;
+      color: var(--github-muted);
+      margin-top: 4px;
+    }
+
+    .contrib-legend-box {
+      width: 8px;
+      height: 8px;
+      border-radius: 1px;
+    }
+
+    /* Contribution levels colors */
+    .level-0 { background-color: #161b22; }
+    .level-1 { background-color: #0e4429; }
+    .level-2 { background-color: #006d32; }
+    .level-3 { background-color: #26a641; }
+    .level-4 { background-color: #39d353; }
+
+    /* Bottom Nav Bar */
+    .bottom-nav {
+      height: 60px;
+      border-top: 1px solid var(--github-border);
+      background-color: var(--github-card);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--github-muted);
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      height: 100%;
+    }
+
+    .nav-item.active {
+      color: var(--git-blue);
+    }
+
+    .nav-item svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .loader {
+      border: 3px solid #21262d;
+      border-top: 3px solid var(--git-blue);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      align-self: center;
+      margin-top: 40px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Info sidebar -->
+    <div class="info-sidebar">
+      <h1>GitCalc</h1>
+      <p>
+        A premium GitHub-themed Calculator built as an Android Flutter app. It offers a standard calculation interface and a developer search utility.
+      </p>
+      
+      <ul class="features-list">
+        <li>Fully responsive layout in material design</li>
+        <li>GitHub dark-palette aesthetic</li>
+        <li>Math-expressions parsing engine</li>
+        <li>Integrates live profile stats with your equations</li>
+      </ul>
+
+      <div class="instructions-box">
+        <h3>How to use the preview:</h3>
+        <ol>
+          <li>Standard Calculator operates in the first tab.</li>
+          <li>Click the <strong>Dev Stats</strong> tab at the bottom of the device.</li>
+          <li>Search any GitHub username (e.g. <code>octocat</code>, <code>google</code>).</li>
+          <li><strong>Tap any stat</strong> box (e.g. followers) to load its value directly into the calculator's current expression!</li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- Phone mockup -->
+    <div class="phone-device">
+      <div class="phone-camera"></div>
+      
+      <div class="phone-screen">
+        <!-- Status Bar -->
+        <div class="status-bar">
+          <span class="time">9:41</span>
+          <div class="right-icons">
+            <span>📶</span>
+            <span>🔋</span>
+          </div>
+        </div>
+
+        <!-- App Header -->
+        <div class="app-header">
+          <svg height="20" viewBox="0 0 16 16" width="20">
+            <path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+          </svg>
+          <h2 id="header-title">GitCalc</h2>
+        </div>
+
+        <!-- Content Area -->
+        <div class="tab-content">
+          
+          <!-- CALCULATOR TAB -->
+          <div id="calculator-tab" class="tab-view active">
+            <div class="display-area">
+              <div id="expression" class="expression-display">0</div>
+              <div id="result" class="result-display">0</div>
+            </div>
+            <div class="keypad-area">
+              <div class="row">
+                <button class="btn clear" onclick="pressKey('AC')">AC</button>
+                <button class="btn del" onclick="pressKey('DEL')">DEL</button>
+                <button class="btn operator" onclick="pressKey('%')">%</button>
+                <button class="btn operator" onclick="pressKey('÷')">÷</button>
+              </div>
+              <div class="row">
+                <button class="btn" onclick="pressKey('7')">7</button>
+                <button class="btn" onclick="pressKey('8')">8</button>
+                <button class="btn" onclick="pressKey('9')">9</button>
+                <button class="btn operator" onclick="pressKey('×')">×</button>
+              </div>
+              <div class="row">
+                <button class="btn" onclick="pressKey('4')">4</button>
+                <button class="btn" onclick="pressKey('5')">5</button>
+                <button class="btn" onclick="pressKey('6')">6</button>
+                <button class="btn operator" onclick="pressKey('-')">-</button>
+              </div>
+              <div class="row">
+                <button class="btn" onclick="pressKey('1')">1</button>
+                <button class="btn" onclick="pressKey('2')">2</button>
+                <button class="btn" onclick="pressKey('3')">3</button>
+                <button class="btn operator" onclick="pressKey('+')">+</button>
+              </div>
+              <div class="row row-5">
+                <button class="btn" onclick="pressKey('.')">.</button>
+                <button class="btn" onclick="pressKey('0')">0</button>
+                <button class="btn equal" onclick="pressKey('=')">=</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- DEV STATS TAB -->
+          <div id="stats-tab" class="tab-view">
+            <div class="search-area">
+              <input type="text" id="username-input" class="search-input" placeholder="GitHub Username..." onkeypress="handleKeyPress(event)">
+              <button class="search-btn" onclick="searchGitHub()">
+                🔍
+              </button>
+            </div>
+            
+            <div id="stats-content-area" class="stats-container">
+              <!-- Empty state default -->
+              <div id="empty-state" class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+                <p>Search a GitHub developer's profile above to inspect their stats and use them in equations.</p>
+              </div>
+
+              <!-- Loading spinner -->
+              <div id="loading-spinner" class="loader" style="display: none;"></div>
+
+              <!-- Error message -->
+              <div id="error-message" style="display: none; text-align: center; color: var(--git-red); padding-top: 30px;">
+                <p>User not found. Check spelling or try again.</p>
+              </div>
+
+              <!-- Profile Details (Hidden by default) -->
+              <div id="profile-details" style="display: none; flex-direction: column; gap: 16px;">
+                <div class="profile-card">
+                  <img id="avatar" class="profile-avatar" src="" alt="Avatar">
+                  <div class="profile-info">
+                    <span id="profile-name" class="profile-name"></span>
+                    <span id="profile-handle" class="profile-username"></span>
+                    <p id="profile-bio" class="profile-bio"></p>
+                  </div>
+                </div>
+
+                <div class="stats-hint">
+                  <svg height="14" viewBox="0 0 16 16" width="14" fill="currentColor">
+                    <path d="M10 6.5a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5A.75.75 0 0 1 10 6.5zm-8.25-.75a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5zm0 3a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5zm0 3a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5z"></path>
+                  </svg>
+                  <span>Tap a stat to insert into calculator:</span>
+                </div>
+
+                <div class="stats-grid">
+                  <div class="stat-box" onclick="insertStatValue('repos')">
+                    <span class="stat-label">Public Repos</span>
+                    <span id="stat-repos" class="stat-value">0</span>
+                  </div>
+                  <div class="stat-box" onclick="insertStatValue('followers')">
+                    <span class="stat-label">Followers</span>
+                    <span id="stat-followers" class="stat-value">0</span>
+                  </div>
+                  <div class="stat-box" onclick="insertStatValue('following')">
+                    <span class="stat-label">Following</span>
+                    <span id="stat-following" class="stat-value">0</span>
+                  </div>
+                  <div class="stat-box" onclick="insertStatValue('gists')">
+                    <span class="stat-label">Public Gists</span>
+                    <span id="stat-gists" class="stat-value">0</span>
+                  </div>
+                </div>
+
+                <!-- Contribution graph mock -->
+                <div class="contrib-section">
+                  <span class="contrib-title">Contributions</span>
+                  <div class="contrib-grid" id="contrib-grid-container">
+                    <!-- cells filled by script -->
+                  </div>
+                  <div class="contrib-legend">
+                    <span>Less</span>
+                    <div class="contrib-legend-box level-0"></div>
+                    <div class="contrib-legend-box level-1"></div>
+                    <div class="contrib-legend-box level-2"></div>
+                    <div class="contrib-legend-box level-3"></div>
+                    <div class="contrib-legend-box level-4"></div>
+                    <span>More</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Navigation Bar -->
+        <div class="bottom-nav">
+          <div id="nav-calc" class="nav-item active" onclick="switchTab(0)">
+            <svg viewBox="0 0 24 24">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/>
+              <path d="M7 12h2v2H7zm0-4h2v2H7zm4 4h2v2h-2zm0-4h2v2h-2zm4 4h2v2h-2zm0-4h2v2h-2zm-8 6h10v2H7z"/>
+            </svg>
+            <span>Calculator</span>
+          </div>
+          <div id="nav-stats" class="nav-item" onclick="switchTab(1)">
+            <svg viewBox="0 0 24 24">
+              <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+            </svg>
+            <span>Dev Stats</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State management variables
+    let expression = "";
+    let isEvaluated = false;
+    let fetchedData = null;
+
+    // Dom elements
+    const expressionEl = document.getElementById("expression");
+    const resultEl = document.getElementById("result");
+    const titleEl = document.getElementById("header-title");
+    const usernameInput = document.getElementById("username-input");
+
+    // Keypad Logic
+    function pressKey(key) {
+      if (key === 'AC') {
+        expression = "";
+        resultEl.innerText = "0";
+        isEvaluated = false;
+      } else if (key === 'DEL') {
+        if (expression.length > 0) {
+          expression = expression.trim();
+          expression = expression.substring(0, expression.length - 1);
+        }
+      } else if (key === '=') {
+        if (expression === "") return;
+        const res = evaluateExpression(expression);
+        resultEl.innerText = res;
+        isEvaluated = true;
+      } else {
+        // Prevent repeating consecutive operators
+        const operators = ['+', '-', '×', '÷', '%'];
+        const lastChar = expression.charAt(expression.length - 1);
+        
+        if (operators.includes(key) && operators.includes(lastChar)) {
+          // Replace last operator
+          expression = expression.substring(0, expression.length - 1) + key;
+        } else {
+          if (isEvaluated && !operators.includes(key)) {
+            // Overwrite if previously evaluated and pressing a new number
+            expression = key;
+          } else {
+            expression += key;
+          }
+          isEvaluated = false;
+        }
+      }
+
+      expressionEl.innerText = expression === "" ? "0" : expression;
+      
+      // Auto scroll display right
+      expressionEl.scrollLeft = expressionEl.scrollWidth;
+    }
+
+    // Evaluate arithmetic expression securely
+    function evaluateExpression(expr) {
+      try {
+        let sanitized = expr.replace(/×/g, '*').replace(/÷/g, '/');
+        
+        // Ensure equation has safe characters
+        if (!/^[0-9+\-*/%.()\s]+$/.test(sanitized)) {
+          return "Error";
+        }
+
+        // Replace percentages e.g., "50%" to "(50/100)"
+        sanitized = sanitized.replace(/([0-9.]+)(%)/g, "($1/100)");
+
+        const evaluateFunction = new Function("return " + sanitized);
+        const res = evaluateFunction();
+
+        if (res === null || res === undefined || isNaN(res) || !isFinite(res)) {
+          return "Error";
+        }
+
+        if (res % 1 === 0) {
+          return res.toString();
+        } else {
+          let str = res.toString();
+          if (str.includes('.') && str.split('.')[1].length > 6) {
+            return res.toFixed(6);
+          }
+          return str;
+        }
+      } catch (e) {
+        return "Error";
+      }
+    }
+
+    // Tab Switcher
+    function switchTab(index) {
+      const calcTab = document.getElementById("calculator-tab");
+      const statsTab = document.getElementById("stats-tab");
+      const navCalc = document.getElementById("nav-calc");
+      const navStats = document.getElementById("nav-stats");
+
+      if (index === 0) {
+        calcTab.classList.add("active");
+        statsTab.classList.remove("active");
+        navCalc.classList.add("active");
+        navStats.classList.remove("active");
+        titleEl.innerText = "GitCalc";
+      } else {
+        calcTab.classList.remove("active");
+        statsTab.classList.add("active");
+        navCalc.classList.remove("active");
+        navStats.classList.add("active");
+        titleEl.innerText = "GitStats Lookup";
+      }
+    }
+
+    // Fetch User statistics
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') {
+        searchGitHub();
+      }
+    }
+
+    async function searchGitHub() {
+      const username = usernameInput.value.trim();
+      if (!username) return;
+
+      const emptyState = document.getElementById("empty-state");
+      const loadingSpinner = document.getElementById("loading-spinner");
+      const errorMessage = document.getElementById("error-message");
+      const profileDetails = document.getElementById("profile-details");
+
+      // Set Loading UI
+      emptyState.style.display = "none";
+      errorMessage.style.display = "none";
+      profileDetails.style.display = "none";
+      loadingSpinner.style.display = "block";
+
+      try {
+        const response = await fetch(`https://api.github.com/users/${username}`);
+        if (response.status === 200) {
+          const data = await response.json();
+          fetchedData = data;
+          
+          // Populate details
+          document.getElementById("avatar").src = data.avatar_url;
+          document.getElementById("profile-name").innerText = data.name || data.login;
+          document.getElementById("profile-handle").innerText = `@${data.login}`;
+          document.getElementById("profile-bio").innerText = data.bio || "No biography provided.";
+          
+          document.getElementById("stat-repos").innerText = data.public_repos;
+          document.getElementById("stat-followers").innerText = data.followers;
+          document.getElementById("stat-following").innerText = data.following;
+          document.getElementById("stat-gists").innerText = data.public_gists;
+
+          // Draw Grid
+          drawContributionGrid();
+
+          loadingSpinner.style.display = "none";
+          profileDetails.style.display = "flex";
+        } else {
+          throw new Error("User not found");
+        }
+      } catch (err) {
+        loadingSpinner.style.display = "none";
+        errorMessage.style.display = "block";
+      }
+    }
+
+    // Insert Stat Clicked into Calculator
+    function insertStatValue(statType) {
+      if (!fetchedData) return;
+
+      let value = 0;
+      switch (statType) {
+        case 'repos':
+          value = fetchedData.public_repos;
+          break;
+        case 'followers':
+          value = fetchedData.followers;
+          break;
+        case 'following':
+          value = fetchedData.following;
+          break;
+        case 'gists':
+          value = fetchedData.public_gists;
+          break;
+      }
+
+      // Append value to expression
+      const lastChar = expression.charAt(expression.length - 1);
+      const isNumber = /[0-9.]/.test(lastChar);
+
+      if (expression !== "" && isNumber) {
+        expression += "+" + value;
+      } else {
+        expression += value;
+      }
+
+      expressionEl.innerText = expression;
+      isEvaluated = false;
+
+      // Switch back to calc screen
+      switchTab(0);
+    }
+
+    // Draw Mock Contribution Grid
+    function drawContributionGrid() {
+      const container = document.getElementById("contrib-grid-container");
+      container.innerHTML = "";
+      
+      // 15 columns x 7 rows = 105 cells
+      for (let i = 0; i < 105; i++) {
+        const cell = document.createElement("div");
+        cell.className = "contrib-cell";
+        
+        // Random level 0-4
+        const level = Math.floor(Math.random() * 5);
+        cell.classList.add("level-" + level);
+        container.appendChild(cell);
+      }
+    }
+  </script>
+</body>
+</html>
