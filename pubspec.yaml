@@ -25,6 +25,6 @@ flutter:
     - assets/icon/app_icon.jpg
 
 flutter_launcher_icons:
-  android: "launcher_icon"
+  android: "kashi"
   ios: false
   image_path: "assets/icon/app_icon.jpg"
