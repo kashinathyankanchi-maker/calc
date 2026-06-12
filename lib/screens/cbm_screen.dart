@@ -144,59 +144,77 @@ class _CbmScreenState extends State<CbmScreen> {
             const SizedBox(height: 20.0),
 
             // Form inputs
-            Text(
-              'Girth (m)',
-              style: GoogleFonts.inter(color: textMain, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 6.0),
-            TextField(
-              controller: _girthController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: GoogleFonts.firaCode(color: textMain),
-              cursorColor: gitBlue,
-              decoration: InputDecoration(
-                hintText: 'Enter log girth in meters...',
-                hintStyle: GoogleFonts.inter(color: textMuted),
-                fillColor: cardColor,
-                filled: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: const BorderSide(color: borderCol, width: 1.0),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Girth (m)',
+                        style: GoogleFonts.inter(color: textMain, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 6.0),
+                      TextField(
+                        controller: _girthController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: GoogleFonts.firaCode(color: textMain),
+                        cursorColor: gitBlue,
+                        decoration: InputDecoration(
+                          hintText: 'Girth (m)...',
+                          hintStyle: GoogleFonts.inter(color: textMuted),
+                          fillColor: cardColor,
+                          filled: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                            borderSide: const BorderSide(color: borderCol, width: 1.0),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                            borderSide: const BorderSide(color: gitBlue, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: const BorderSide(color: gitBlue, width: 1.5),
+                const SizedBox(width: 16.0),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Length (m)',
+                        style: GoogleFonts.inter(color: textMain, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 6.0),
+                      TextField(
+                        controller: _lengthController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: GoogleFonts.firaCode(color: textMain),
+                        cursorColor: gitBlue,
+                        decoration: InputDecoration(
+                          hintText: 'Length (m)...',
+                          hintStyle: GoogleFonts.inter(color: textMuted),
+                          fillColor: cardColor,
+                          filled: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                            borderSide: const BorderSide(color: borderCol, width: 1.0),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.0),
+                            borderSide: const BorderSide(color: gitBlue, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 16.0),
-
-            Text(
-              'Length (m)',
-              style: GoogleFonts.inter(color: textMain, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 6.0),
-            TextField(
-              controller: _lengthController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: GoogleFonts.firaCode(color: textMain),
-              cursorColor: gitBlue,
-              decoration: InputDecoration(
-                hintText: 'Enter log length in meters...',
-                hintStyle: GoogleFonts.inter(color: textMuted),
-                fillColor: cardColor,
-                filled: true,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: const BorderSide(color: borderCol, width: 1.0),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                  borderSide: const BorderSide(color: gitBlue, width: 1.5),
-                ),
-              ),
+              ],
             ),
             const SizedBox(height: 20.0),
 

@@ -15,7 +15,7 @@ class GitHubCalculatorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'GitCalc',
+      title: 'kashi',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -146,7 +146,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
             const SizedBox(width: 10),
             Text(
               _activeTabIndex == 0
-                  ? 'GitCalc'
+                  ? 'kashi'
                   : _activeTabIndex == 1
                       ? 'GitStats Lookup'
                       : 'CBM Calculator',
