@@ -34,8 +34,8 @@ jobs:
       - name: Recreate Android platform configuration
         run: flutter create --platforms=android .
 
-      - name: Override minSdkVersion in local.properties
-        run: echo "flutter.minSdkVersion=23" >> android/local.properties
+      - name: Force minSdkVersion to 23 in build.gradle
+        run: sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/g' android/app/build.gradle
 
       - name: Generate Launcher Icons
         run: flutter pub run flutter_launcher_icons
