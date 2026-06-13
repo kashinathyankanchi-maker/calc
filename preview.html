@@ -814,6 +814,7 @@
                   <span style="font-size: 0.85rem; font-weight: 600; color: var(--github-text);">Scan or Upload Log Sheet Page</span>
                   <span style="font-size: 0.7rem; color: var(--github-muted); font-family: monospace;">Mock OCR Scanner</span>
                 </div>
+                <p style="font-size: 0.7rem; color: var(--github-muted); margin: 0; width: 100%;">Supports printed & handwritten log pages. For file uploads, name files like `4.2_x_5.png` to simulate parsing.</p>
                 <div style="display: flex; gap: 10px; width: 100%;">
                   <button class="search-btn" style="flex: 1; height: 38px; font-size: 0.8rem;" onclick="triggerMockScan('camera')">📷 Scan Page</button>
                   <button class="search-btn" style="flex: 1; height: 38px; font-size: 0.8rem;" onclick="document.getElementById('mock-file-picker').click()">📁 Upload Page</button>
@@ -1163,7 +1164,9 @@
       setTimeout(() => {
         overlay.style.display = "none";
         const filename = file.name;
-        const matches = filename.match(/[0-9]+(?:\.[0-9]+)?/g);
+        // Normalize commas to periods in filenames to handle handwritten decimal notation (e.g. 4,2 -> 4.2)
+        const normalizedFilename = filename.replace(/([0-9]+),([0-9]+)/g, "$1.$2");
+        const matches = normalizedFilename.match(/[0-9]+(?:\.[0-9]+)?/g);
         
         let girth = 4.2;
         let length = 5.0;

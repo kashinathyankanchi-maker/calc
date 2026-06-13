@@ -138,13 +138,16 @@ class _CbmScreenState extends State<CbmScreen> {
         return;
       }
 
+      // Replace commas with periods to handle handwritten decimal style (e.g. 4,2 -> 4.2)
+      final String processedText = rawText.replaceAll(RegExp(r'(\d+),(\d+)'), r'$1.$2');
+
       setState(() {
         _scannedRawText = rawText;
       });
 
-      // Parse values
-      final double? girth = _parseNumber(rawText, ['girth', 'g', 'gir', 'grith', 'dia', 'd']);
-      final double? length = _parseNumber(rawText, ['length', 'l', 'len', 'lanth', 'langth']);
+      // Parse values from processed text
+      final double? girth = _parseNumber(processedText, ['girth', 'g', 'gir', 'grith', 'dia', 'd']);
+      final double? length = _parseNumber(processedText, ['length', 'l', 'len', 'lanth', 'langth']);
 
       setState(() {
         if (girth != null) {
@@ -174,7 +177,7 @@ class _CbmScreenState extends State<CbmScreen> {
       } else {
         // Try finding any numbers in the text as a backup
         final numberRegex = RegExp(r'\b[0-9]+(?:\.[0-9]+)?\b');
-        final matches = numberRegex.allMatches(rawText)
+        final matches = numberRegex.allMatches(processedText)
             .map((m) => double.tryParse(m.group(0) ?? ''))
             .where((val) => val != null)
             .cast<double>()
@@ -353,11 +356,28 @@ class _CbmScreenState extends State<CbmScreen> {
                   ),
                   const SizedBox(height: 4.0),
                   Text(
-                    'Extract Girth and Length from log page text automatically.',
+                    'Extract Girth and Length from printed or handwritten log page text automatically.',
                     style: GoogleFonts.inter(
                       fontSize: 12.0,
                       color: textMuted,
                     ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  Row(
+                    children: [
+                      const Icon(Icons.lightbulb_outline, size: 14, color: gitBlue),
+                      const SizedBox(width: 6.0),
+                      Expanded(
+                        child: Text(
+                          'Tip: Write clearly like "Girth: 4.2" or "4.2 x 5" to help recognition.',
+                          style: GoogleFonts.inter(
+                            fontSize: 11.0,
+                            color: textMuted,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 12.0),
                   if (_isScanning)
