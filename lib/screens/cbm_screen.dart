@@ -125,26 +125,33 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
     }
   }
 
-  // OCR noise cleaner: fixes common handwriting OCR misreads.
-  // D->0 (3.1D->3.10), E prefix removed (E0.9D->0.90), S->5,
-  // dash as decimal (4-00->4.00), O->0, I/l->1, B->8, Z->2
+  // OCR noise cleaner - safe version.
+  // Only substitutes letters when the token is MOSTLY numeric (letters <= digits).
+  // This prevents header words like 'Gith','ng','ght' from becoming phantom numbers.
   String? _cleanOcrNum(String raw) {
     var s = raw.trim();
+    // MUST contain at least one digit - pure letters/words return null immediately
+    if (!RegExp(r'\d').hasMatch(s)) return null;
+    // Fix dash as decimal separator: 4-00 -> 4.00
     s = s.replaceAllMapped(RegExp(r'(\d)-(\d)'), (m) => '${m[1]}.${m[2]}');
-    s = s.replaceAllMapped(RegExp(r'[A-Za-z]'), (m) {
-      switch (m[0]!.toLowerCase()) {
-        case 's': return '5';
-        case 'o': return '0';
-        case 'i': case 'l': return '1';
-        case 'd': case 'q': return '0';
-        case 'b': return '8';
-        case 'g': return '9';
-        case 'z': return '2';
-        case 'e': return '';
-        default:  return '';
-      }
-    });
+    // Only apply substitutions when letters <= digits (token is mostly numeric)
+    final digitCnt  = RegExp(r'\d').allMatches(s).length;
+    final letterCnt = RegExp(r'[A-Za-z]').allMatches(s).length;
+    if (letterCnt > 0 && letterCnt <= digitCnt) {
+      s = s.replaceAllMapped(RegExp(r'[A-Za-z]'), (m) {
+        switch (m[0]!.toLowerCase()) {
+          case 'd': case 'q': return '0'; // 0 misread as D/Q (most common)
+          case 'o':           return '0'; // O/0 confusion
+          case 's':           return '5'; // 5/S confusion
+          case 'i': case 'l': return '1'; // 1/I/l confusion
+          case 'e':           return '';  // leading E (E0.9D -> 0.9D)
+          default:            return '';  // drop other stray letters safely
+        }
+      });
+    }
+    // Remove anything that is not a digit or period
     s = s.replaceAll(RegExp(r'[^\d.]'), '');
+    // Keep only the first decimal point
     final dotIdx = s.indexOf('.');
     if (dotIdx >= 0) {
       s = s.substring(0, dotIdx + 1) +
@@ -153,7 +160,6 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
     if (s.isEmpty || s == '.') return null;
     return s;
   }
-
   /// Spatial column detection using ML Kit bounding boxes.
   /// Applies OCR noise cleaning per element, then splits by median x.
   List<LogEntry> _parseFromBlocks(RecognizedText result) {
@@ -169,7 +175,7 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
           final cleaned = _cleanOcrNum(raw);
           if (cleaned == null) continue;
           final v = double.tryParse(cleaned);
-          if (v == null || v <= 0 || v > 999) continue;
+          if (v == null || v <= 0 || v > 50) continue;
           final cx = element.boundingBox.left + element.boundingBox.width / 2;
           positioned.add(MapEntry(cx, v));
         }
@@ -200,7 +206,7 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
           .map((m) => _cleanOcrNum(m.group(0)!))
           .where((s) => s != null)
           .map((s) => double.tryParse(s!))
-          .where((v) => v != null && v > 0 && v < 999)
+          .where((v) => v != null && v > 0 && v < 50)
           .cast<double>()
           .toList();
     }
