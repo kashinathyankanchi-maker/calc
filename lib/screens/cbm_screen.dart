@@ -111,20 +111,132 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
       }
       // PRIMARY: use bounding-box x-position to split left (Girth) / right (Length) columns
       final newEntries = _parseFromBlocks(result);
-      setState(() {
-        _isScanning = false;
-        if (newEntries.isNotEmpty) { _entries.addAll(newEntries); _errorMessage = ''; }
-        else { _errorMessage = 'Could not extract pairs. See raw text below.'; }
-      });
+      setState(() { _isScanning = false; });
       if (newEntries.isNotEmpty) {
-        _animController..reset()..forward();
-        _snack('Scanned ${newEntries.length} log entr${newEntries.length == 1 ? "y" : "ies"}!', gitGreen);
+        // Show review dialog - user can correct any OCR errors before adding
+        await _showScanReviewDialog(newEntries);
+      } else {
+        setState(() => _errorMessage = 'Could not extract pairs. Review raw text below and add manually.');
       }
-    } catch (e) {
+        } catch (e) {
       setState(() { _errorMessage = 'Error: $e'; _isScanning = false; });
     }
   }
 
+  // ── Post-scan review dialog ──
+  // Shows extracted Girth/Length pairs in editable fields.
+  // User can correct any OCR errors before values are added to the table.
+  Future<void> _showScanReviewDialog(List<LogEntry> scanned) async {
+    final gCtrls = scanned.map((e) => TextEditingController(text: e.girth.toStringAsFixed(2))).toList();
+    final lCtrls = scanned.map((e) => TextEditingController(text: e.length.toStringAsFixed(2))).toList();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF161B22),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          // Handle
+          const SizedBox(height: 12),
+          Container(width: 40, height: 4,
+              decoration: BoxDecoration(color: const Color(0xFF30363D), borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 12),
+          // Title
+          Text('Review Scanned Values',
+              style: GoogleFonts.inter(color: const Color(0xFFC9D1D9), fontSize: 15, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text('OCR may misread handwriting. Edit any wrong values below before adding.',
+                style: GoogleFonts.inter(color: const Color(0xFF8B949E), fontSize: 11),
+                textAlign: TextAlign.center),
+          ),
+          const SizedBox(height: 12),
+          // Column headers
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(children: [
+              const SizedBox(width: 28),
+              Expanded(child: Text('Girth (m)', style: GoogleFonts.inter(color: const Color(0xFF58A6FF), fontSize: 12, fontWeight: FontWeight.bold))),
+              const SizedBox(width: 8),
+              Expanded(child: Text('Length (m)', style: GoogleFonts.inter(color: const Color(0xFF58A6FF), fontSize: 12, fontWeight: FontWeight.bold))),
+            ]),
+          ),
+          const SizedBox(height: 6),
+          // Editable rows (scrollable)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 280),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: gCtrls.length,
+              itemBuilder: (_, i) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+                child: Row(children: [
+                  SizedBox(width: 28, child: Text('',
+                      style: GoogleFonts.inter(color: const Color(0xFF8B949E), fontSize: 12))),
+                  Expanded(child: _reviewField(gCtrls[i])),
+                  const SizedBox(width: 8),
+                  Expanded(child: _reviewField(lCtrls[i])),
+                ]),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Confirm button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ElevatedButton(
+              onPressed: () {
+                final added = <LogEntry>[];
+                for (int i = 0; i < gCtrls.length; i++) {
+                  final g = double.tryParse(gCtrls[i].text.replaceAll(',', '.'));
+                  final l = double.tryParse(lCtrls[i].text.replaceAll(',', '.'));
+                  if (g != null && l != null && g > 0 && l > 0) added.add(LogEntry(girth: g, length: l));
+                }
+                Navigator.pop(ctx);
+                if (added.isNotEmpty) {
+                  setState(() => _entries.addAll(added));
+                  _animController..reset()..forward();
+                  _snack('Added  log to table!', const Color(0xFF3FB950));
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3FB950), foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(46),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: Text('Confirm & Add  Logs',
+                  style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 14)),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ]),
+      ),
+    );
+
+    for (final c in gCtrls) c.dispose();
+    for (final c in lCtrls) c.dispose();
+  }
+
+  Widget _reviewField(TextEditingController ctrl) => TextField(
+    controller: ctrl,
+    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    style: GoogleFonts.firaCode(color: const Color(0xFFC9D1D9), fontSize: 13),
+    decoration: InputDecoration(
+      isDense: true,
+      fillColor: const Color(0xFF0D1117), filled: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: Color(0xFF30363D))),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: Color(0xFF58A6FF), width: 1.5)),
+    ),
+  );
   // OCR noise cleaner - safe version.
   // Only substitutes letters when the token is MOSTLY numeric (letters <= digits).
   // This prevents header words like 'Gith','ng','ght' from becoming phantom numbers.
