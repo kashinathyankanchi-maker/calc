@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+ï»¿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -125,62 +125,90 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
     }
   }
 
-  /// Spatial column detection using ML Kit bounding boxes.
-  /// Numbers whose centre-x < median x ? Girth (left column)
-  /// Numbers whose centre-x >= median x ? Length (right column)
-  List<LogEntry> _parseFromBlocks(RecognizedText result) {
-    final numRe = RegExp(r'^\d+(?:[.,]\d+)?$');
-    final headerRe = RegExp(r'(?:girth|length|lenght|lenth|girht)', caseSensitive: false);
+  // OCR noise cleaner: fixes common handwriting OCR misreads.
+  // D->0 (3.1D->3.10), E prefix removed (E0.9D->0.90), S->5,
+  // dash as decimal (4-00->4.00), O->0, I/l->1, B->8, Z->2
+  String? _cleanOcrNum(String raw) {
+    var s = raw.trim();
+    s = s.replaceAllMapped(RegExp(r'(\d)-(\d)'), (m) => '${m[1]}.${m[2]}');
+    s = s.replaceAllMapped(RegExp(r'[A-Za-z]'), (m) {
+      switch (m[0]!.toLowerCase()) {
+        case 's': return '5';
+        case 'o': return '0';
+        case 'i': case 'l': return '1';
+        case 'd': case 'q': return '0';
+        case 'b': return '8';
+        case 'g': return '9';
+        case 'z': return '2';
+        case 'e': return '';
+        default:  return '';
+      }
+    });
+    s = s.replaceAll(RegExp(r'[^\d.]'), '');
+    final dotIdx = s.indexOf('.');
+    if (dotIdx >= 0) {
+      s = s.substring(0, dotIdx + 1) +
+          s.substring(dotIdx + 1).replaceAll('.', '');
+    }
+    if (s.isEmpty || s == '.') return null;
+    return s;
+  }
 
-    // Collect (x-centre, value) for every numeric element
+  /// Spatial column detection using ML Kit bounding boxes.
+  /// Applies OCR noise cleaning per element, then splits by median x.
+  List<LogEntry> _parseFromBlocks(RecognizedText result) {
+    final headerRe = RegExp(
+        r'(?:girth|length|lenght|lenth|girht|gith|girh)',
+        caseSensitive: false);
     final List<MapEntry<double, double>> positioned = [];
     for (final block in result.blocks) {
       for (final line in block.lines) {
         for (final element in line.elements) {
-          final raw = element.text.replaceAll(',', '.').trim();
-          if (headerRe.hasMatch(raw)) continue;
-          final v = double.tryParse(raw);
-          if (v == null || v <= 0) continue;
+          final raw = element.text.trim();
+          if (headerRe.hasMatch(raw) && !RegExp(r'\d').hasMatch(raw)) continue;
+          final cleaned = _cleanOcrNum(raw);
+          if (cleaned == null) continue;
+          final v = double.tryParse(cleaned);
+          if (v == null || v <= 0 || v > 999) continue;
           final cx = element.boundingBox.left + element.boundingBox.width / 2;
           positioned.add(MapEntry(cx, v));
         }
       }
     }
-
     if (positioned.length >= 2) {
-      // Find median x to split columns
       final sorted = positioned.map((e) => e.key).toList()..sort();
       final medianX = sorted[sorted.length ~/ 2];
-
       final girths  = positioned.where((e) => e.key <  medianX).map((e) => e.value).toList();
       final lengths = positioned.where((e) => e.key >= medianX).map((e) => e.value).toList();
-
       if (girths.isNotEmpty && lengths.isNotEmpty) {
         final count = girths.length < lengths.length ? girths.length : lengths.length;
         return List.generate(count, (i) => LogEntry(girth: girths[i], length: lengths[i]));
       }
     }
-
-    // FALLBACK: text-only parsing
     return _parseTextFallback(result.text);
   }
 
-  /// Text-only fallback when bounding boxes are unavailable.
-  /// Strategy 1: line-by-line pairs (works when OCR gives "G L" per line)
-  /// Strategy 2: split-in-half  (works when OCR reads full left col then full right col)
-  List<LogEntry> _parseTextFallback(String text) {
-    final entries = <LogEntry>[];
-    final numRe = RegExp(r'\b(\d+(?:\.\d+)?)\b');
-    final headerRe = RegExp(r'(?:girth|length|lenght|lenth|girht)', caseSensitive: false);
-    final lines = text.replaceAll(RegExp(r'(\d+),(\d+)'), r'$1.$2').split(RegExp(r'[\n\r]+'));
+  /// Text-only fallback. Applies OCR noise cleaning to every token.
+  List<LogEntry> _parseTextFallback(String rawText) {
+    final entries  = <LogEntry>[];
+    final headerRe = RegExp(r'(?:girth|length|lenght|lenth|girht|gith|girh)', caseSensitive: false);
+    final tokenRe  = RegExp(r'[A-Za-z]*\d[\dA-Za-z.,\-]*');
+    final lines    = rawText.split(RegExp(r'[\n\r]+'));
 
-    // Strategy 1: two numbers on the same line
+    List<double> extractNums(String line) {
+      return tokenRe.allMatches(line)
+          .map((m) => _cleanOcrNum(m.group(0)!))
+          .where((s) => s != null)
+          .map((s) => double.tryParse(s!))
+          .where((v) => v != null && v > 0 && v < 999)
+          .cast<double>()
+          .toList();
+    }
+
     for (final line in lines) {
       final t = line.trim();
       if (t.isEmpty || (headerRe.hasMatch(t) && !RegExp(r'\d').hasMatch(t))) continue;
-      final nums = numRe.allMatches(t)
-          .map((m) => double.tryParse(m.group(0) ?? ''))
-          .where((v) => v != null && v > 0).cast<double>().toList();
+      final nums = extractNums(t);
       if (nums.length >= 2) {
         int s = (nums[0] == nums[0].truncateToDouble() && nums[0] <= 99 && nums.length >= 3) ? 1 : 0;
         if (s + 1 < nums.length) entries.add(LogEntry(girth: nums[s], length: nums[s + 1]));
@@ -188,24 +216,19 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
     }
     if (entries.isNotEmpty) return entries;
 
-    // Strategy 2: collect all data-line numbers; if even count split in half
     final allNums = <double>[];
     for (final line in lines) {
       final t = line.trim();
       if (t.isEmpty || (headerRe.hasMatch(t) && !RegExp(r'\d').hasMatch(t))) continue;
-      allNums.addAll(numRe.allMatches(t)
-          .map((m) => double.tryParse(m.group(0) ?? ''))
-          .where((v) => v != null && v > 0).cast<double>());
+      allNums.addAll(extractNums(t));
     }
     if (allNums.length >= 2) {
       if (allNums.length % 2 == 0) {
-        // Even: first half = girths, second half = lengths
         final half = allNums.length ~/ 2;
         for (int i = 0; i < half; i++) {
           entries.add(LogEntry(girth: allNums[i], length: allNums[half + i]));
         }
       } else {
-        // Odd: sequential pairing as last resort
         for (int i = 0; i + 1 < allNums.length; i += 2) {
           entries.add(LogEntry(girth: allNums[i], length: allNums[i + 1]));
         }
@@ -213,7 +236,6 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
     }
     return entries;
   }
-
   void _snack(String msg, Color c) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600)),
@@ -338,7 +360,7 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
           child: Column(children: [
             const CircularProgressIndicator(color: gitBlue, strokeWidth: 2.5),
             const SizedBox(height: 8),
-            Text('Scanning…', style: GoogleFonts.inter(color: gitBlue, fontSize: 12, fontWeight: FontWeight.bold)),
+            Text('Scanningï¿½', style: GoogleFonts.inter(color: gitBlue, fontSize: 12, fontWeight: FontWeight.bold)),
           ])))
       else Row(children: [
         Expanded(child: ElevatedButton.icon(
