@@ -37,6 +37,9 @@ jobs:
       - name: Force minSdkVersion to 23 in build.gradle
         run: sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 23/g' android/app/build.gradle
 
+      - name: Set app label to kashi in AndroidManifest.xml
+        run: sed -i 's/android:label="[^"]*"/android:label="kashi"/g' android/app/src/main/AndroidManifest.xml
+
       - name: Generate Launcher Icons
         run: flutter pub run flutter_launcher_icons
 
