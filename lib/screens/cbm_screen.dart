@@ -418,21 +418,73 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
   Future<void> _printTable() async {
     if (_entries.isEmpty) { _snack('No data to print!', Colors.orange); return; }
 
-    final pdf = pw.Document();
-    final now = DateTime.now();
-    final dateFmt = '${now.day.toString().padLeft(2,'0')}/${now.month.toString().padLeft(2,'0')}/${now.year}';
-    final timeFmt = '${now.hour.toString().padLeft(2,'0')}:${now.minute.toString().padLeft(2,'0')}';
+    // Show headline editor dialog first
+    final headlineCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('Set Report Headline',
+            style: GoogleFonts.inter(color: const Color(0xFFC9D1D9), fontWeight: FontWeight.bold, fontSize: 16)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('Type the headline/title for your printed report.',
+              style: GoogleFonts.inter(color: const Color(0xFF8B949E), fontSize: 12)),
+          const SizedBox(height: 14),
+          TextField(
+            controller: headlineCtrl,
+            autofocus: true,
+            style: GoogleFonts.inter(color: const Color(0xFFC9D1D9), fontSize: 14),
+            decoration: InputDecoration(
+              hintText: 'e.g. Timber Log Report - Site A',
+              hintStyle: GoogleFonts.inter(color: const Color(0xFF484F58), fontSize: 13),
+              filled: true, fillColor: const Color(0xFF0D1117),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF30363D))),
+              focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF58A6FF), width: 1.5)),
+            ),
+          ),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: GoogleFonts.inter(color: const Color(0xFF8B949E))),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.print, size: 16),
+            label: Text('Print', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3FB950), foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+          ),
+        ],
+      ),
+    );
 
-    pw.Widget cell(String text, {bool header = false, bool green = false, pw.Alignment align = pw.Alignment.centerLeft}) {
+    headlineCtrl.dispose();
+    if (confirmed != true) return;
+
+    final headline = headlineCtrl.text.trim().isEmpty ? 'CBM Log Report' : headlineCtrl.text.trim();
+    final now = DateTime.now();
+    final dateFmt = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+
+    final pdf = pw.Document();
+
+    pw.Widget cell(String text, {bool header = false, pw.Alignment align = pw.Alignment.centerLeft}) {
       return pw.Container(
         padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
         child: pw.Align(
           alignment: align,
           child: pw.Text(text,
             style: pw.TextStyle(
-              fontSize: header ? 10 : 10,
+              fontSize: 10,
               fontWeight: header ? pw.FontWeight.bold : pw.FontWeight.normal,
-              color: green ? PdfColors.green800 : (header ? PdfColors.white : PdfColors.grey900),
+              color: header ? PdfColors.white : PdfColors.grey900,
             ),
           ),
         ),
@@ -445,42 +497,40 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
       build: (ctx) => pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          // ── Header ──
-          pw.Center(child: pw.Column(children: [
-            pw.Text('KASHI', style: pw.TextStyle(fontSize: 26, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey900)),
-            pw.SizedBox(height: 2),
-            pw.Text('CBM (Cubic Meter) Report', style: pw.TextStyle(fontSize: 13, color: PdfColors.blueGrey600)),
-          ])),
+          // User-defined headline (centered, large)
+          pw.Center(
+            child: pw.Text(headline,
+              style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey900),
+              textAlign: pw.TextAlign.center,
+            ),
+          ),
+          pw.SizedBox(height: 4),
+          pw.Center(
+            child: pw.Text('Date: $dateFmt  |  Total Logs: ${_entries.length}',
+              style: pw.TextStyle(fontSize: 10, color: PdfColors.blueGrey500)),
+          ),
           pw.SizedBox(height: 14),
-          // ── Meta row ──
-          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-            pw.Text('Date: $dateFmt  Time: $timeFmt', style: pw.TextStyle(fontSize: 10, color: PdfColors.blueGrey600)),
-            pw.Text('Formula: (Girth² × Length) ÷ 16', style: pw.TextStyle(fontSize: 10, color: PdfColors.blueGrey600)),
-          ]),
+          pw.Divider(color: PdfColors.blueGrey300, thickness: 1),
           pw.SizedBox(height: 10),
-          pw.Divider(color: PdfColors.blueGrey200),
-          pw.SizedBox(height: 10),
-          // ── Table ──
+          // Table
           pw.Table(
             border: pw.TableBorder.all(color: PdfColors.blueGrey200, width: 0.5),
             columnWidths: {
-              0: const pw.FixedColumnWidth(32),
+              0: const pw.FixedColumnWidth(30),
               1: const pw.FlexColumnWidth(2.5),
               2: const pw.FlexColumnWidth(2.5),
               3: const pw.FlexColumnWidth(2.5),
             },
             children: [
-              // Header row
               pw.TableRow(
                 decoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
                 children: [
                   cell('#',           header: true, align: pw.Alignment.center),
                   cell('Girth (m)',   header: true),
                   cell('Length (m)',  header: true),
-                  cell('Volume (m³)', header: true),
+                  cell('Volume (m\u00b3)', header: true),
                 ],
               ),
-              // Data rows
               ..._entries.asMap().entries.map((e) {
                 final idx = e.key;
                 final log = e.value;
@@ -495,32 +545,32 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
                   ],
                 );
               }),
-              // Total row
               pw.TableRow(
                 decoration: const pw.BoxDecoration(color: PdfColors.green50),
                 children: [
                   cell('', align: pw.Alignment.center),
-                  pw.Container(
+                  pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
                     child: pw.Text('TOTAL ( log)',
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.green800)),
                   ),
                   cell(''),
-                  pw.Container(
+                  pw.Padding(
                     padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                    child: pw.Text('${_fmt(_totalVolume)} m³',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColors.green800)),
+                    child: pw.Text('${_fmt(_totalVolume)} m\u00b3',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12, color: PdfColors.green800)),
                   ),
                 ],
               ),
             ],
           ),
-          pw.SizedBox(height: 20),
+          pw.SizedBox(height: 16),
           pw.Divider(color: PdfColors.blueGrey200),
-          pw.SizedBox(height: 8),
+          pw.SizedBox(height: 6),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-            pw.Text('Generated by kashi app', style: pw.TextStyle(fontSize: 8, color: PdfColors.blueGrey400)),
-            pw.Text('Total: ${_fmt(_totalVolume)} m³  |  Logs: ${_entries.length}', style: pw.TextStyle(fontSize: 8, color: PdfColors.blueGrey400)),
+            pw.Text('kashi app', style: pw.TextStyle(fontSize: 8, color: PdfColors.blueGrey400)),
+            pw.Text('Total: ${_fmt(_totalVolume)} m\u00b3  |  Logs: ${_entries.length}',
+                style: pw.TextStyle(fontSize: 8, color: PdfColors.blueGrey400)),
           ]),
         ],
       ),
@@ -528,7 +578,7 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
 
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
-      name: 'kashi_cbm_$dateFmt.pdf'.replaceAll('/', '-'),
+      name: '$headline.pdf'.replaceAll(' ', '_'),
     );
   }
   Widget _totalCard() => FadeTransition(
