@@ -791,36 +791,44 @@
               </div>
 
             </div>
-          </div>
-
-          <!-- CBM CALCULATOR TAB -->
+             <!-- CBM CALCULATOR TAB -->
           <div id="cbm-tab" class="tab-view">
             <div class="stats-container" style="padding-top: 16px;">
-              <div class="profile-card" style="flex-direction: column; gap: 6px;">
-                <span style="font-size: 1rem; font-weight: bold; color: var(--github-text);">Wood Log Volume Calculator</span>
-                <p style="font-size: 0.8rem; color: var(--github-muted);">Calculate log volume in Cubic Meters (m³).</p>
+
+              <!-- Header -->
+              <div class="profile-card" style="flex-direction: column; gap: 4px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                  <div>
+                    <span style="font-size: 1rem; font-weight: bold; color: var(--github-text);">Wood Log Volume Table</span>
+                    <p style="font-size: 0.72rem; font-family:'Fira Code',monospace; color: var(--git-blue); margin:2px 0 0;">Quarter Girth: (G² × L) ÷ 16</p>
+                  </div>
+                  <button id="cbm-clear-btn" onclick="clearAllCbm()" style="display:none; background:transparent; border:1px solid var(--git-red); color:var(--git-red); border-radius:6px; padding:4px 10px; font-size:0.72rem; cursor:pointer;">Clear All</button>
+                </div>
               </div>
 
-              <!-- Result Card (AT THE TOP) -->
-              <div id="cbm-result-card" class="contrib-section" style="display: none; align-items: center; justify-content: center; text-align: center; border-color: var(--git-green); padding: 16px; margin-bottom: 10px;">
-                <span style="font-size: 0.82rem; color: var(--github-muted); font-weight: 500;">Log Volume</span>
-                <span id="cbm-result-val" style="font-family: 'Fira Code', monospace; font-size: 1.8rem; font-weight: 800; color: var(--git-green); margin: 6px 0;">0 m³</span>
-                <button class="search-btn" style="background-color: var(--git-green); color: white; border-color: #1e702e; font-size: 0.85rem; height: 36px; padding: 0 16px; margin-top: 4px;" onclick="exportCbmToCalc()">Insert to Calculator</button>
+              <!-- Total result card (top) -->
+              <div id="cbm-total-card" style="display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:var(--github-card); border:1.5px solid var(--git-green); border-radius:10px; padding:14px; gap:4px; box-shadow:0 0 12px rgba(35,134,54,0.12);">
+                <span style="font-size:0.75rem; color:var(--github-muted); font-weight:500;">Total Log Volume</span>
+                <span id="cbm-total-val" style="font-family:'Fira Code',monospace; font-size:1.8rem; font-weight:800; color:var(--git-green);">0 m³</span>
+                <span id="cbm-log-count" style="font-size:0.7rem; color:var(--github-muted);">0 logs</span>
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                  <button class="search-btn" style="background:var(--git-green);color:white;border-color:#1e702e;font-size:0.78rem;height:32px;padding:0 14px;" onclick="exportCbmToCalc()">+ Insert Total</button>
+                  <button class="search-btn" style="background:var(--github-card);font-size:0.78rem;height:32px;padding:0 12px;" onclick="copyCbmTable()">Copy Table</button>
+                </div>
               </div>
 
               <!-- Scanner Container -->
               <div class="profile-card" style="flex-direction: column; gap: 8px; position: relative; overflow: hidden; padding: 14px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--github-text);">Scan or Upload Log Sheet Page</span>
-                  <span style="font-size: 0.7rem; color: var(--github-muted); font-family: monospace;">Mock OCR Scanner</span>
+                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--github-text);">Scan or Upload Log Sheet</span>
+                  <span style="font-size: 0.7rem; color: var(--github-muted); font-family: monospace;">Mock OCR</span>
                 </div>
-                <p style="font-size: 0.7rem; color: var(--github-muted); margin: 0; width: 100%;">Supports printed & handwritten log pages. For file uploads, name files like `4.2_x_5.png` to simulate parsing.</p>
+                <p style="font-size: 0.7rem; color: var(--github-muted); margin: 0;">Handwritten & printed supported. All rows extracted at once.</p>
                 <div style="display: flex; gap: 10px; width: 100%;">
-                  <button class="search-btn" style="flex: 1; height: 38px; font-size: 0.8rem;" onclick="triggerMockScan('camera')">📷 Scan Page</button>
+                  <button class="search-btn" style="flex: 1; height: 38px; font-size: 0.8rem;" onclick="triggerMockScan()">📷 Scan Page</button>
                   <button class="search-btn" style="flex: 1; height: 38px; font-size: 0.8rem;" onclick="document.getElementById('mock-file-picker').click()">📁 Upload Page</button>
                 </div>
                 <input type="file" id="mock-file-picker" style="display: none;" accept="image/*" onchange="handleFileUploaded(event)">
-                
                 <!-- Scanner Animation Overlay -->
                 <div id="scanner-overlay" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(13, 17, 23, 0.92); flex-direction: column; align-items: center; justify-content: center; z-index: 10;">
                   <div class="loader" style="margin-top: 0; width: 22px; height: 22px; border-width: 2.5px;"></div>
@@ -829,34 +837,47 @@
                 </div>
               </div>
 
-              <!-- Inputs Side-by-Side -->
-              <div style="display: flex; gap: 10px;">
-                <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
-                  <label style="font-size: 0.85rem; font-weight: 600; color: var(--github-text);">Girth (m)</label>
-                  <input type="number" id="cbm-girth" class="search-input" placeholder="Girth (m)..." style="width: 100%; box-sizing: border-box;">
+              <!-- Manual add row -->
+              <div class="profile-card" style="flex-direction:column; gap:8px; padding:12px;">
+                <span style="font-size:0.8rem; font-weight:600; color:var(--github-text);">+ Add Row Manually</span>
+                <div style="display:flex; gap:8px; align-items:flex-end;">
+                  <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
+                    <label style="font-size:0.7rem; color:var(--github-muted); font-weight:600;">Girth (m)</label>
+                    <input type="number" id="cbm-girth" class="search-input" placeholder="0.00" style="width:100%; box-sizing:border-box;">
+                  </div>
+                  <div style="flex:1; display:flex; flex-direction:column; gap:3px;">
+                    <label style="font-size:0.7rem; color:var(--github-muted); font-weight:600;">Length (m)</label>
+                    <input type="number" id="cbm-length" class="search-input" placeholder="0.00" style="width:100%; box-sizing:border-box;">
+                  </div>
+                  <button class="search-btn" style="height:40px; padding:0 14px; flex-shrink:0;" onclick="addCbmRow()">Add</button>
                 </div>
-
-                <div style="display: flex; flex-direction: column; gap: 4px; flex: 1;">
-                  <label style="font-size: 0.85rem; font-weight: 600; color: var(--github-text);">Length (m)</label>
-                  <input type="number" id="cbm-length" class="search-input" placeholder="Length (m)..." style="width: 100%; box-sizing: border-box;">
-                </div>
-              </div>
-
-              <!-- Toggle formula -->
-              <div class="profile-card" style="justify-content: space-between; align-items: center; padding: 12px 16px;">
-                <div>
-                  <span id="cbm-formula-title" style="font-size: 0.85rem; font-weight: 600; color: var(--github-text);">Quarter Girth Standard</span>
-                  <p id="cbm-formula-sub" style="font-size: 0.75rem; color: var(--git-blue); font-family: 'Fira Code', monospace; margin-top: 2px;">(Girth² × Length) ÷ 16</p>
-                </div>
-                <input type="checkbox" id="cbm-formula-toggle" checked style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--git-blue);" onchange="toggleCbmFormula()">
               </div>
 
               <div id="cbm-error" style="display: none; color: var(--git-red); font-size: 0.82rem; text-align: center; font-weight: 500;"></div>
 
-              <div style="display: flex; gap: 10px; margin-top: 6px;">
-                <button class="search-btn" style="flex: 1; height: 44px;" onclick="calculateCbm()">Calculate</button>
-                <button class="btn" style="width: 44px; height: 44px; font-size: 1rem;" onclick="clearCbm()">🔄</button>
+              <!-- Results Table -->
+              <div id="cbm-table-container" style="display:none;">
+                <div style="background:var(--github-card); border:1px solid var(--github-border); border-radius:10px; overflow:hidden;">
+                  <!-- Table header -->
+                  <div style="display:grid; grid-template-columns:28px 1fr 1fr 1fr 24px; gap:0; background:#1c2128; padding:8px 12px; border-bottom:1px solid var(--github-border);">
+                    <span style="font-size:0.7rem; color:var(--github-muted); font-weight:bold;">#</span>
+                    <span style="font-size:0.72rem; color:var(--git-blue); font-weight:bold;">Girth (m)</span>
+                    <span style="font-size:0.72rem; color:var(--git-blue); font-weight:bold;">Length (m)</span>
+                    <span style="font-size:0.72rem; color:var(--git-green); font-weight:bold;">Volume (m³)</span>
+                    <span></span>
+                  </div>
+                  <!-- Table rows -->
+                  <div id="cbm-table-rows"></div>
+                  <!-- Table footer -->
+                  <div id="cbm-table-footer" style="display:grid; grid-template-columns:28px 1fr 1fr 1fr 24px; gap:0; background:#1c2128; padding:8px 12px; border-top:1px solid rgba(35,134,54,0.4);">
+                    <span></span>
+                    <span style="font-size:0.7rem; color:var(--github-muted); font-weight:bold; grid-column:span 2;">TOTAL</span>
+                    <span id="cbm-footer-total" style="font-family:'Fira Code',monospace; font-size:0.8rem; color:var(--git-green); font-weight:bold;">0 m³</span>
+                    <span></span>
+                  </div>
+                </div>
               </div>
+
             </div>
           </div>
 
@@ -1116,73 +1137,149 @@
     }
 
     // --- CBM CALCULATIONS ---
-    function toggleCbmFormula() {
-      const toggle = document.getElementById("cbm-formula-toggle");
-      const title = document.getElementById("cbm-formula-title");
-      const sub = document.getElementById("cbm-formula-sub");
-      
-      useQuarterGirth = toggle.checked;
-      if (useQuarterGirth) {
-        title.innerText = "Quarter Girth Standard";
-        sub.innerText = "(Girth² × Length) ÷ 16";
-      } else {
-        title.innerText = "Linear Formula";
-        sub.innerText = "(Girth × Length) ÷ 16";
-      }
-      
-      if (document.getElementById("cbm-result-card").style.display === "flex") {
-        calculateCbm();
-      }
+    // ── Multi-Row CBM Table Logic ──
+    let logEntries = []; // {girth, length}
+
+    function fmtVol(v) {
+      if (v % 1 === 0) return v.toString();
+      return parseFloat(v.toFixed(4)).toString();
     }
 
-    // --- Mock Scanner JS ---
-    function triggerMockScan(source) {
+    function calcVol(g, l) { return (g * g * l) / 16; }
+
+    function renderCbmTable() {
+      const rows = document.getElementById('cbm-table-rows');
+      const container = document.getElementById('cbm-table-container');
+      const totalCard = document.getElementById('cbm-total-card');
+      const totalVal = document.getElementById('cbm-total-val');
+      const logCount = document.getElementById('cbm-log-count');
+      const footerTotal = document.getElementById('cbm-footer-total');
+      const clearBtn = document.getElementById('cbm-clear-btn');
+
+      if (logEntries.length === 0) {
+        container.style.display = 'none';
+        totalCard.style.display = 'none';
+        clearBtn.style.display = 'none';
+        return;
+      }
+
+      container.style.display = 'block';
+      totalCard.style.display = 'flex';
+      clearBtn.style.display = 'block';
+
+      let total = 0;
+      rows.innerHTML = '';
+      logEntries.forEach((e, i) => {
+        const v = calcVol(e.girth, e.length);
+        total += v;
+        const row = document.createElement('div');
+        row.style.cssText = `display:grid; grid-template-columns:28px 1fr 1fr 1fr 24px; padding:8px 12px; align-items:center; border-bottom:1px solid var(--github-border); background:${i%2===0?'rgba(13,17,23,0.3)':'transparent'};`;
+        row.innerHTML = `
+          <span style="font-size:0.7rem;color:var(--github-muted);">${i+1}</span>
+          <span style="font-family:'Fira Code',monospace;font-size:0.75rem;color:var(--github-text);font-weight:500;">${e.girth}</span>
+          <span style="font-family:'Fira Code',monospace;font-size:0.75rem;color:var(--github-text);font-weight:500;">${e.length}</span>
+          <span style="font-family:'Fira Code',monospace;font-size:0.75rem;color:var(--git-green);font-weight:bold;">${fmtVol(v)} m³</span>
+          <span style="cursor:pointer;color:var(--git-red);font-size:0.8rem;text-align:center;" onclick="deleteCbmRow(${i})">✕</span>`;
+        rows.appendChild(row);
+      });
+
+      // Remove last border
+      if (rows.lastChild) rows.lastChild.style.borderBottom = 'none';
+
+      const totalStr = fmtVol(total);
+      totalVal.innerText = totalStr + ' m³';
+      footerTotal.innerText = totalStr + ' m³';
+      logCount.innerText = `${logEntries.length} log${logEntries.length === 1 ? '' : 's'}`;
+      cbmResult = total;
+    }
+
+    function addCbmRow() {
+      const g = parseFloat(document.getElementById('cbm-girth').value);
+      const l = parseFloat(document.getElementById('cbm-length').value);
+      const err = document.getElementById('cbm-error');
+      if (isNaN(g) || isNaN(l) || g <= 0 || l <= 0) {
+        err.innerText = 'Enter valid positive numbers for Girth and Length.';
+        err.style.display = 'block';
+        return;
+      }
+      err.style.display = 'none';
+      logEntries.push({girth: g, length: l});
+      document.getElementById('cbm-girth').value = '';
+      document.getElementById('cbm-length').value = '';
+      renderCbmTable();
+    }
+
+    function deleteCbmRow(i) {
+      logEntries.splice(i, 1);
+      renderCbmTable();
+    }
+
+    function clearAllCbm() {
+      logEntries = [];
+      document.getElementById('cbm-girth').value = '';
+      document.getElementById('cbm-length').value = '';
+      document.getElementById('cbm-error').style.display = 'none';
+      cbmResult = 0;
+      renderCbmTable();
+    }
+
+    function copyCbmTable() {
+      if (logEntries.length === 0) return;
+      const lines = logEntries.map((e, i) => {
+        const v = fmtVol(calcVol(e.girth, e.length));
+        return `${i+1}. G:${e.girth}  L:${e.length}  V:${v}m³`;
+      });
+      lines.push('Total: ' + fmtVol(cbmResult) + ' m³');
+      navigator.clipboard && navigator.clipboard.writeText(lines.join('\n'));
+      showMockSnackBar('Table copied to clipboard!');
+    }
+
+    // Mock Scanner – adds 5 log entries matching the handwritten reference
+    function triggerMockScan() {
       const overlay = document.getElementById("scanner-overlay");
       overlay.style.display = "flex";
-      
       setTimeout(() => {
         overlay.style.display = "none";
-        const girths = [3.2, 4.5, 5.1, 2.8, 4.0];
-        const lengths = [6.0, 5.5, 7.2, 4.8, 6.5];
-        const idx = Math.floor(Math.random() * girths.length);
-        
-        document.getElementById("cbm-girth").value = girths[idx];
-        document.getElementById("cbm-length").value = lengths[idx];
-        
-        calculateCbm();
-        showMockSnackBar(`Successfully scanned page: Girth=${girths[idx]}m, Length=${lengths[idx]}m`);
+        const mockData = [
+          {girth: 1.10, length: 5.00},
+          {girth: 2.20, length: 4.00},
+          {girth: 3.10, length: 3.00},
+          {girth: 1.15, length: 3.50},
+          {girth: 0.90, length: 4.00},
+        ];
+        mockData.forEach(d => logEntries.push(d));
+        renderCbmTable();
+        showMockSnackBar(`Scanned ${mockData.length} log entries from page!`);
       }, 1500);
     }
 
     function handleFileUploaded(event) {
       const file = event.target.files[0];
       if (!file) return;
-      
       const overlay = document.getElementById("scanner-overlay");
       overlay.style.display = "flex";
-      
       setTimeout(() => {
         overlay.style.display = "none";
         const filename = file.name;
-        // Normalize commas to periods in filenames to handle handwritten decimal notation (e.g. 4,2 -> 4.2)
-        const normalizedFilename = filename.replace(/([0-9]+),([0-9]+)/g, "$1.$2");
-        const matches = normalizedFilename.match(/[0-9]+(?:\.[0-9]+)?/g);
-        
-        let girth = 4.2;
-        let length = 5.0;
-        
+        // Normalize commas to periods (handwritten decimal notation)
+        const normalized = filename.replace(/([0-9]+),([0-9]+)/g, "$1.$2");
+        const matches = normalized.match(/[0-9]+(?:\.[0-9]+)?/g);
+        // Try to extract multiple pairs from filename (e.g. "1.1_5_2.2_4_3.1_3.png")
+        const newEntries = [];
         if (matches && matches.length >= 2) {
-          girth = parseFloat(matches[0]);
-          length = parseFloat(matches[1]);
-        } else if (matches && matches.length === 1) {
-          girth = parseFloat(matches[0]);
+          for (let i = 0; i + 1 < matches.length; i += 2) {
+            const g = parseFloat(matches[i]);
+            const l = parseFloat(matches[i+1]);
+            if (g > 0 && l > 0) newEntries.push({girth: g, length: l});
+          }
         }
-        
-        document.getElementById("cbm-girth").value = girth;
-        document.getElementById("cbm-length").value = length;
-        
-        calculateCbm();
-        showMockSnackBar(`Uploaded ${filename}: Extracted Girth=${girth}m, Length=${length}m`);
+        if (newEntries.length === 0) {
+          // fallback single entry
+          newEntries.push({girth: 4.2, length: 5.0});
+        }
+        newEntries.forEach(d => logEntries.push(d));
+        renderCbmTable();
+        showMockSnackBar(`Uploaded "${filename}": ${newEntries.length} entr${newEntries.length===1?'y':'ies'} extracted.`);
       }, 1500);
     }
 
@@ -1219,70 +1316,9 @@
       }, 3000);
     }
 
-    function calculateCbm() {
-      const girthVal = parseFloat(document.getElementById("cbm-girth").value);
-      const lengthVal = parseFloat(document.getElementById("cbm-length").value);
-      const errorEl = document.getElementById("cbm-error");
-      const cardEl = document.getElementById("cbm-result-card");
-      const valEl = document.getElementById("cbm-result-val");
-
-      errorEl.style.display = "none";
-      cardEl.style.display = "none";
-
-      if (isNaN(girthVal) || isNaN(lengthVal) || girthVal <= 0 || lengthVal <= 0) {
-        errorEl.innerText = "Please enter valid positive numbers.";
-        errorEl.style.display = "block";
-        return;
-      }
-
-      let volume;
-      if (useQuarterGirth) {
-        volume = (girthVal * girthVal * lengthVal) / 16;
-      } else {
-        volume = (girthVal * lengthVal) / 16;
-      }
-
-      cbmResult = volume;
-      
-      // Format result
-      let formatted;
-      if (volume % 1 === 0) {
-        formatted = volume.toString();
-      } else {
-        let str = volume.toString();
-        if (str.includes('.') && str.split('.')[1].length > 6) {
-          formatted = volume.toFixed(6);
-        } else {
-          formatted = str;
-        }
-      }
-
-      valEl.innerText = formatted + " m³";
-      cardEl.style.display = "flex";
-    }
-
-    function clearCbm() {
-      document.getElementById("cbm-girth").value = "";
-      document.getElementById("cbm-length").value = "";
-      document.getElementById("cbm-error").style.display = "none";
-      document.getElementById("cbm-result-card").style.display = "none";
-      cbmResult = 0;
-    }
-
     function exportCbmToCalc() {
       if (cbmResult === 0) return;
-      
-      let formatted;
-      if (cbmResult % 1 === 0) {
-        formatted = cbmResult.toString();
-      } else {
-        let str = cbmResult.toString();
-        if (str.includes('.') && str.split('.')[1].length > 6) {
-          formatted = cbmResult.toFixed(6);
-        } else {
-          formatted = str;
-        }
-      }
+      const formatted = fmtVol(cbmResult);
 
       // Append value to expression
       const lastChar = expression.charAt(expression.length - 1);
