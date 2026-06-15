@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 // --- Data Model ---
 class LogEntry {
@@ -411,6 +414,123 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
     ),
   );
 
+  // ── PDF Print / Export ──
+  Future<void> _printTable() async {
+    if (_entries.isEmpty) { _snack('No data to print!', Colors.orange); return; }
+
+    final pdf = pw.Document();
+    final now = DateTime.now();
+    final dateFmt = '${now.day.toString().padLeft(2,'0')}/${now.month.toString().padLeft(2,'0')}/${now.year}';
+    final timeFmt = '${now.hour.toString().padLeft(2,'0')}:${now.minute.toString().padLeft(2,'0')}';
+
+    pw.Widget cell(String text, {bool header = false, bool green = false, pw.Alignment align = pw.Alignment.centerLeft}) {
+      return pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+        child: pw.Align(
+          alignment: align,
+          child: pw.Text(text,
+            style: pw.TextStyle(
+              fontSize: header ? 10 : 10,
+              fontWeight: header ? pw.FontWeight.bold : pw.FontWeight.normal,
+              color: green ? PdfColors.green800 : (header ? PdfColors.white : PdfColors.grey900),
+            ),
+          ),
+        ),
+      );
+    }
+
+    pdf.addPage(pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.all(36),
+      build: (ctx) => pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          // ── Header ──
+          pw.Center(child: pw.Column(children: [
+            pw.Text('KASHI', style: pw.TextStyle(fontSize: 26, fontWeight: pw.FontWeight.bold, color: PdfColors.blueGrey900)),
+            pw.SizedBox(height: 2),
+            pw.Text('CBM (Cubic Meter) Report', style: pw.TextStyle(fontSize: 13, color: PdfColors.blueGrey600)),
+          ])),
+          pw.SizedBox(height: 14),
+          // ── Meta row ──
+          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+            pw.Text('Date: $dateFmt  Time: $timeFmt', style: pw.TextStyle(fontSize: 10, color: PdfColors.blueGrey600)),
+            pw.Text('Formula: (Girth² × Length) ÷ 16', style: pw.TextStyle(fontSize: 10, color: PdfColors.blueGrey600)),
+          ]),
+          pw.SizedBox(height: 10),
+          pw.Divider(color: PdfColors.blueGrey200),
+          pw.SizedBox(height: 10),
+          // ── Table ──
+          pw.Table(
+            border: pw.TableBorder.all(color: PdfColors.blueGrey200, width: 0.5),
+            columnWidths: {
+              0: const pw.FixedColumnWidth(32),
+              1: const pw.FlexColumnWidth(2.5),
+              2: const pw.FlexColumnWidth(2.5),
+              3: const pw.FlexColumnWidth(2.5),
+            },
+            children: [
+              // Header row
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: PdfColors.blueGrey800),
+                children: [
+                  cell('#',           header: true, align: pw.Alignment.center),
+                  cell('Girth (m)',   header: true),
+                  cell('Length (m)',  header: true),
+                  cell('Volume (m³)', header: true),
+                ],
+              ),
+              // Data rows
+              ..._entries.asMap().entries.map((e) {
+                final idx = e.key;
+                final log = e.value;
+                final vol = (log.girth * log.girth * log.length) / 16;
+                return pw.TableRow(
+                  decoration: pw.BoxDecoration(color: idx.isEven ? PdfColors.blueGrey50 : PdfColors.white),
+                  children: [
+                    cell('${idx + 1}', align: pw.Alignment.center),
+                    cell(log.girth.toStringAsFixed(2)),
+                    cell(log.length.toStringAsFixed(2)),
+                    cell(vol.toStringAsFixed(4)),
+                  ],
+                );
+              }),
+              // Total row
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: PdfColors.green50),
+                children: [
+                  cell('', align: pw.Alignment.center),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                    child: pw.Text('TOTAL ( log)',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.green800)),
+                  ),
+                  cell(''),
+                  pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                    child: pw.Text('${_fmt(_totalVolume)} m³',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: PdfColors.green800)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 20),
+          pw.Divider(color: PdfColors.blueGrey200),
+          pw.SizedBox(height: 8),
+          pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+            pw.Text('Generated by kashi app', style: pw.TextStyle(fontSize: 8, color: PdfColors.blueGrey400)),
+            pw.Text('Total: ${_fmt(_totalVolume)} m³  |  Logs: ${_entries.length}', style: pw.TextStyle(fontSize: 8, color: PdfColors.blueGrey400)),
+          ]),
+        ],
+      ),
+    ));
+
+    await Printing.layoutPdf(
+      onLayout: (format) async => pdf.save(),
+      name: 'kashi_cbm_$dateFmt.pdf'.replaceAll('/', '-'),
+    );
+  }
   Widget _totalCard() => FadeTransition(
     opacity: _fadeAnim,
     child: Container(
@@ -428,16 +548,15 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
         const SizedBox(height: 2),
         Text('${_entries.length} log${_entries.length == 1 ? "" : "s"}', style: GoogleFonts.inter(color: textMuted, fontSize: 12)),
         const SizedBox(height: 14),
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 8, children: [
           ElevatedButton.icon(
             onPressed: () { widget.onInsertValue(_fmt(_totalVolume)); widget.onSwitchToCalculator(); },
             icon: const Icon(Icons.add, size: 16),
             label: Text('Insert Total', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(backgroundColor: gitGreen, foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
           ),
-          const SizedBox(width: 10),
           OutlinedButton.icon(
             onPressed: () {
               final t = _entries.map((e) => 'G:${e.girth}  L:${e.length}  V:${e.volumeFormatted}m\u00b3').join('\n');
@@ -445,8 +564,17 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
               _snack('Table copied!', gitBlue);
             },
             icon: const Icon(Icons.copy, size: 16),
-            label: Text('Copy Table', style: GoogleFonts.inter(fontSize: 13)),
+            label: Text('Copy', style: GoogleFonts.inter(fontSize: 13)),
             style: OutlinedButton.styleFrom(foregroundColor: gitBlue, side: const BorderSide(color: gitBlue),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+          ),
+          OutlinedButton.icon(
+            onPressed: _printTable,
+            icon: const Icon(Icons.print, size: 16),
+            label: Text('Print / PDF', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+            style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFF78166),
+              side: const BorderSide(color: Color(0xFFF78166)),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
           ),
