@@ -95,6 +95,7 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
     _lengthController.clear();
   });
 
+  // -- OCR with spatial column detection --
   Future<void> _pickImage(ImageSource src) async {
     setState(() { _isScanning = true; _errorMessage = ''; _scannedRawText = ''; });
     try {
@@ -104,12 +105,12 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
       final result = await rec.processImage(InputImage.fromFilePath(img.path));
       await rec.close();
       final raw = result.text;
+      setState(() { _scannedRawText = raw.isEmpty ? '(no text detected)' : raw; });
       if (raw.trim().isEmpty) {
         setState(() { _errorMessage = 'No text detected. Try a clearer image.'; _isScanning = false; }); return;
       }
-      final processed = raw.replaceAll(RegExp(r'(\d+),(\d+)'), r'$1.$2');
-      setState(() { _scannedRawText = raw; });
-      final newEntries = _parseEntries(processed);
+      // PRIMARY: use bounding-box x-position to split left (Girth) / right (Length) columns
+      final newEntries = _parseFromBlocks(result);
       setState(() {
         _isScanning = false;
         if (newEntries.isNotEmpty) { _entries.addAll(newEntries); _errorMessage = ''; }
@@ -124,33 +125,90 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
     }
   }
 
-  List<LogEntry> _parseEntries(String text) {
-    final entries = <LogEntry>[];
-    final lines = text.split(RegExp(r'[\n\r]+'));
-    final numRe = RegExp(r'\b(\d+(?:\.\d+)?)\b');
-    final headerRe = RegExp(r'(?:girth|length|lenght|lenth)', caseSensitive: false);
-    final hasHeaders = text.toLowerCase().contains('girth') || text.toLowerCase().contains('length');
+  /// Spatial column detection using ML Kit bounding boxes.
+  /// Numbers whose centre-x < median x ? Girth (left column)
+  /// Numbers whose centre-x >= median x ? Length (right column)
+  List<LogEntry> _parseFromBlocks(RecognizedText result) {
+    final numRe = RegExp(r'^\d+(?:[.,]\d+)?$');
+    final headerRe = RegExp(r'(?:girth|length|lenght|lenth|girht)', caseSensitive: false);
 
+    // Collect (x-centre, value) for every numeric element
+    final List<MapEntry<double, double>> positioned = [];
+    for (final block in result.blocks) {
+      for (final line in block.lines) {
+        for (final element in line.elements) {
+          final raw = element.text.replaceAll(',', '.').trim();
+          if (headerRe.hasMatch(raw)) continue;
+          final v = double.tryParse(raw);
+          if (v == null || v <= 0) continue;
+          final cx = element.boundingBox.left + element.boundingBox.width / 2;
+          positioned.add(MapEntry(cx, v));
+        }
+      }
+    }
+
+    if (positioned.length >= 2) {
+      // Find median x to split columns
+      final sorted = positioned.map((e) => e.key).toList()..sort();
+      final medianX = sorted[sorted.length ~/ 2];
+
+      final girths  = positioned.where((e) => e.key <  medianX).map((e) => e.value).toList();
+      final lengths = positioned.where((e) => e.key >= medianX).map((e) => e.value).toList();
+
+      if (girths.isNotEmpty && lengths.isNotEmpty) {
+        final count = girths.length < lengths.length ? girths.length : lengths.length;
+        return List.generate(count, (i) => LogEntry(girth: girths[i], length: lengths[i]));
+      }
+    }
+
+    // FALLBACK: text-only parsing
+    return _parseTextFallback(result.text);
+  }
+
+  /// Text-only fallback when bounding boxes are unavailable.
+  /// Strategy 1: line-by-line pairs (works when OCR gives "G L" per line)
+  /// Strategy 2: split-in-half  (works when OCR reads full left col then full right col)
+  List<LogEntry> _parseTextFallback(String text) {
+    final entries = <LogEntry>[];
+    final numRe = RegExp(r'\b(\d+(?:\.\d+)?)\b');
+    final headerRe = RegExp(r'(?:girth|length|lenght|lenth|girht)', caseSensitive: false);
+    final lines = text.replaceAll(RegExp(r'(\d+),(\d+)'), r'$1.$2').split(RegExp(r'[\n\r]+'));
+
+    // Strategy 1: two numbers on the same line
     for (final line in lines) {
       final t = line.trim();
-      if (t.isEmpty) continue;
-      if (headerRe.hasMatch(t) && !RegExp(r'\d').hasMatch(t)) continue;
+      if (t.isEmpty || (headerRe.hasMatch(t) && !RegExp(r'\d').hasMatch(t))) continue;
       final nums = numRe.allMatches(t)
           .map((m) => double.tryParse(m.group(0) ?? ''))
           .where((v) => v != null && v > 0).cast<double>().toList();
       if (nums.length >= 2) {
-        int s = 0;
-        if (hasHeaders && nums[0] == nums[0].truncateToDouble() && nums[0] <= 99 && nums.length >= 3) s = 1;
+        int s = (nums[0] == nums[0].truncateToDouble() && nums[0] <= 99 && nums.length >= 3) ? 1 : 0;
         if (s + 1 < nums.length) entries.add(LogEntry(girth: nums[s], length: nums[s + 1]));
       }
     }
+    if (entries.isNotEmpty) return entries;
 
-    if (entries.isEmpty) {
-      final all = numRe.allMatches(text)
+    // Strategy 2: collect all data-line numbers; if even count split in half
+    final allNums = <double>[];
+    for (final line in lines) {
+      final t = line.trim();
+      if (t.isEmpty || (headerRe.hasMatch(t) && !RegExp(r'\d').hasMatch(t))) continue;
+      allNums.addAll(numRe.allMatches(t)
           .map((m) => double.tryParse(m.group(0) ?? ''))
-          .where((v) => v != null && v > 0).cast<double>().toList();
-      for (int i = 0; i + 1 < all.length; i += 2) {
-        entries.add(LogEntry(girth: all[i], length: all[i + 1]));
+          .where((v) => v != null && v > 0).cast<double>());
+    }
+    if (allNums.length >= 2) {
+      if (allNums.length % 2 == 0) {
+        // Even: first half = girths, second half = lengths
+        final half = allNums.length ~/ 2;
+        for (int i = 0; i < half; i++) {
+          entries.add(LogEntry(girth: allNums[i], length: allNums[half + i]));
+        }
+      } else {
+        // Odd: sequential pairing as last resort
+        for (int i = 0; i + 1 < allNums.length; i += 2) {
+          entries.add(LogEntry(girth: allNums[i], length: allNums[i + 1]));
+        }
       }
     }
     return entries;
@@ -416,3 +474,4 @@ class _CbmScreenState extends State<CbmScreen> with TickerProviderStateMixin {
     ]),
   );
 }
+
