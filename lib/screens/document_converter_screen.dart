@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
-import 'package:excel/excel.dart';
+import 'package:excel/excel.dart' hide Border;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
@@ -626,10 +626,10 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
         child: ConstrainedBox(
           constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 32),
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(const Color(0xFF1F2937)),
+            headingRowColor: MaterialStateProperty.all(const Color(0xFF1F2937)),
             headingTextStyle: GoogleFonts.inter(color: _blue, fontSize: 12, fontWeight: FontWeight.bold),
             dataTextStyle: GoogleFonts.firaCode(color: _text, fontSize: 12),
-            dataRowColor: WidgetStateProperty.resolveWith((states) => _card),
+            dataRowColor: MaterialStateProperty.resolveWith((states) => _card),
             dividerThickness: 0.5,
             columnSpacing: 20,
             columns: [
@@ -651,7 +651,7 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
               final ri = rowEntry.key;
               final row = rowEntry.value;
               return DataRow(
-                color: WidgetStateProperty.all(ri.isEven ? _bg : _card),
+                color: MaterialStateProperty.all(ri.isEven ? _bg : _card),
                 cells: [
                   DataCell(Row(mainAxisSize: MainAxisSize.min, children: [
                     Text('${ri + 1}', style: GoogleFonts.inter(color: _muted, fontSize: 11)),
