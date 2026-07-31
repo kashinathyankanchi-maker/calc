@@ -62,7 +62,10 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
       final raw = await FlutterTesseractOcr.extractText(
         img.path,
         language: 'kan+eng',
-        args: {'preserve_interword_spaces': '1'},
+        args: {
+          'preserve_interword_spaces': '1',
+          'psm': '6'
+        },
       ) ?? '';
 
       setState(() { _rawText = raw.trim(); });
@@ -83,12 +86,13 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
     final lines = text.split(RegExp(r'[\n\r]+')).map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
     if (lines.isEmpty) return;
 
-    // Split each line into cells using 2+ spaces or tabs as delimiter
-    final split = lines.map((l) => l.split(RegExp(r'\t+|\s{2,}'))).toList();
+    // Split each line into cells using 3+ spaces or tabs as delimiter
+    // 3 spaces is safer to avoid splitting single names with a double-space typo
+    final split = lines.map((l) => l.split(RegExp(r'\t+|\s{3,}'))).toList();
 
-    // Determine best column count (mode of all row lengths)
+    // Determine max column count to NEVER lose data
     final counts = split.map((r) => r.length).toList()..sort();
-    final colCount = _mode(counts);
+    final colCount = counts.last; // max columns
 
     // Normalise rows to colCount cells
     final rows = split.map((r) {
