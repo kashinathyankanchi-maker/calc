@@ -31,15 +31,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Download Tesseract language data (Kannada + English)
+      - name: Download Kannada tessdata only (fast variant, ~3MB)
         run: |
           mkdir -p assets/tessdata
-          echo "Downloading Kannada tessdata (~12 MB)..."
-          curl -L "https://github.com/tesseract-ocr/tessdata/raw/main/kan.traineddata" \
+          echo "Downloading Kannada tessdata (fast variant ~3MB)..."
+          curl -L "https://github.com/tesseract-ocr/tessdata_fast/raw/main/kan.traineddata" \
                -o assets/tessdata/kan.traineddata
-          echo "Downloading English tessdata (~12 MB)..."
-          curl -L "https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata" \
-               -o assets/tessdata/eng.traineddata
+          echo "Done:"
           ls -lh assets/tessdata/
 
       - name: Recreate Android platform configuration
@@ -54,11 +52,17 @@ jobs:
       - name: Generate Launcher Icons
         run: flutter pub run flutter_launcher_icons
 
-      - name: Build APK
-        run: flutter build apk --release
+      - name: Build split APKs (one per CPU architecture)
+        run: flutter build apk --release --split-per-abi
 
-      - name: Upload APK Artifact
+      - name: Upload arm64 APK (most modern Android phones)
         uses: actions/upload-artifact@v4
         with:
-          name: kashi-android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: kashi-arm64
+          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+
+      - name: Upload arm32 APK (older Android phones)
+        uses: actions/upload-artifact@v4
+        with:
+          name: kashi-arm32
+          path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
