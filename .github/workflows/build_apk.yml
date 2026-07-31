@@ -31,6 +31,17 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Download Tesseract language data (Kannada + English)
+        run: |
+          mkdir -p assets/tessdata
+          echo "Downloading Kannada tessdata (~12 MB)..."
+          curl -L "https://github.com/tesseract-ocr/tessdata/raw/main/kan.traineddata" \
+               -o assets/tessdata/kan.traineddata
+          echo "Downloading English tessdata (~12 MB)..."
+          curl -L "https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata" \
+               -o assets/tessdata/eng.traineddata
+          ls -lh assets/tessdata/
+
       - name: Recreate Android platform configuration
         run: flutter create --platforms=android .
 
