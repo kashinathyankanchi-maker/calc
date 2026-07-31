@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'screens/calculator_screen.dart';
 import 'screens/stats_screen.dart';
 import 'screens/cbm_screen.dart';
+import 'screens/document_converter_screen.dart';
 import 'calculator_logic.dart';
 
 void main() {
@@ -135,6 +136,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           });
         },
       ),
+      const DocumentConverterScreen(),
     ];
 
     return Scaffold(
@@ -149,7 +151,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                   ? 'kashi'
                   : _activeTabIndex == 1
                       ? 'GitStats Lookup'
-                      : 'CBM Calculator',
+                      : _activeTabIndex == 2
+                          ? 'CBM Calculator'
+                          : 'Doc Converter',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -191,6 +195,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           unselectedItemColor: textMuted,
           selectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12),
           unselectedLabelStyle: GoogleFonts.inter(fontSize: 12),
+          type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.calculate),
@@ -206,6 +211,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               icon: Icon(Icons.forest),
               activeIcon: Icon(Icons.forest, color: gitBlue),
               label: 'CBM Calc',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.document_scanner_outlined),
+              activeIcon: Icon(Icons.document_scanner, color: gitBlue),
+              label: 'Doc Convert',
             ),
           ],
         ),
