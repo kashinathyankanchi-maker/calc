@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/calculator_screen.dart';
-import 'screens/stats_screen.dart';
 import 'screens/cbm_screen.dart';
 import 'screens/document_converter_screen.dart';
 import 'calculator_logic.dart';
@@ -120,14 +119,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
         onClear: _onClear,
         onDelete: _onDelete,
       ),
-      StatsScreen(
-        onInsertValue: _onInsertValue,
-        onSwitchToCalculator: () {
-          setState(() {
-            _activeTabIndex = 0;
-          });
-        },
-      ),
       CbmScreen(
         onInsertValue: _onInsertValue,
         onSwitchToCalculator: () {
@@ -150,10 +141,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               _activeTabIndex == 0
                   ? 'kashi'
                   : _activeTabIndex == 1
-                      ? 'GitStats Lookup'
-                      : _activeTabIndex == 2
-                          ? 'CBM Calculator'
-                          : 'Doc Converter',
+                      ? 'CBM Calculator'
+                      : 'Doc Converter',
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -201,11 +190,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
               icon: Icon(Icons.calculate),
               activeIcon: Icon(Icons.calculate, color: gitBlue),
               label: 'Calculator',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.code),
-              activeIcon: Icon(Icons.code, color: gitBlue),
-              label: 'Dev Stats',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.forest),
