@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -38,7 +38,6 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
   bool                _isScanning = false;
   String              _errorMsg   = '';
   String              _docTitle   = '';
-  String              _lang       = 'en'; // 'en' = ML Kit English, 'kan' = Tesseract Kannada
   late AnimationController _fadeCtrl;
   late Animation<double>   _fadeAnim;
 
@@ -59,21 +58,12 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
       final img = await ImagePicker().pickImage(source: src, maxWidth: 2048, maxHeight: 2048, imageQuality: 90);
       if (img == null) { setState(() => _isScanning = false); return; }
 
-      String raw;
-      if (_lang == 'kan') {
-        // ── Tesseract OCR (offline, supports Kannada) ──
-        raw = await FlutterTesseractOcr.extractText(
-          img.path,
-          language: 'kan',
-          args: {'preserve_interword_spaces': '1'},
-        ) ?? '';
-      } else {
-        // ── ML Kit OCR (fast, Latin/English) ──
-        final rec    = TextRecognizer(script: TextRecognitionScript.latin);
-        final result = await rec.processImage(InputImage.fromFilePath(img.path));
-        await rec.close();
-        raw = result.text.trim();
-      }
+      // ── Tesseract OCR (offline, mixed Kannada+English) ──
+      final raw = await FlutterTesseractOcr.extractText(
+        img.path,
+        language: 'kan+eng',
+        args: {'preserve_interword_spaces': '1'},
+      ) ?? '';
 
       setState(() { _rawText = raw.trim(); });
       if (raw.trim().isEmpty) {
@@ -446,45 +436,22 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
           child: const Icon(Icons.document_scanner, color: _blue, size: 22)),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Document Scanner & Converter', style: GoogleFonts.inter(color: _text, fontSize: 14, fontWeight: FontWeight.bold)),
-          Text('Image / Handwritten -> Excel . PDF . Softcopy', style: GoogleFonts.inter(color: _muted, fontSize: 11)),
+          Row(children: [
+            Text('Doc Scanner & Converter', style: GoogleFonts.inter(color: _text, fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: _orange, borderRadius: BorderRadius.circular(6)),
+              child: Text('PRO', style: GoogleFonts.inter(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+            ),
+          ]),
+          Text('Mixed Kannada + English Support', style: GoogleFonts.inter(color: _muted, fontSize: 11)),
         ])),
         if (_columns.isNotEmpty)
           IconButton(icon: const Icon(Icons.delete_outline, color: _orange, size: 20),
             onPressed: _clearAll, tooltip: 'Clear all data'),
       ]),
-      const SizedBox(height: 14),
-      // -- Language Selector --
-      Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: _bg, borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: _border)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('OCR Language', style: GoogleFonts.inter(color: _muted, fontSize: 11, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Row(children: [
-            _langChip('en',  'English',                  'ML Kit . Fast',        _blue),
-            const SizedBox(width: 8),
-            _langChip('kan', '\u0c95\u0ca8\u0ccd\u0ca8\u0ca1 (Kannada)', 'Tesseract . Offline',  _orange),
-          ]),
-          if (_lang == 'kan') ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(color: _orange.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
-              child: Row(children: [
-                const Icon(Icons.info_outline, color: _orange, size: 13),
-                const SizedBox(width: 6),
-                Expanded(child: Text(
-                  'Kannada mode uses Tesseract OCR (100% offline). Scanning may take 5-15 seconds. Works best on clear, printed Kannada text.',
-                  style: GoogleFonts.inter(color: _orange, fontSize: 10))),
-              ]),
-            ),
-          ],
-        ]),
-      ),
-      const SizedBox(height: 14),
+      const SizedBox(height: 16),
       if (_isScanning)
         _loadingWidget()
       else ...[
@@ -498,10 +465,10 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(8), border: Border.all(color: _border)),
           child: Row(children: [
-            const Icon(Icons.lightbulb_outline, color: Color(0xFFF0E68C), size: 14),
+            const Icon(Icons.auto_awesome, color: Color(0xFFF0E68C), size: 14),
             const SizedBox(width: 8),
             Expanded(child: Text(
-              'Tip: Works best with flat, well-lit images. Handwritten tables, printed sheets, and invoices all supported.',
+              'Pro Engine automatically extracts mixed Kannada and English text from any printed or handwritten image.',
               style: GoogleFonts.inter(color: _muted, fontSize: 10))),
           ]),
         ),
@@ -514,35 +481,6 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
       ],
     ]),
   );
-
-  Widget _langChip(String code, String label, String sub, Color col) {
-    final selected = _lang == code;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _lang = code),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? col.withOpacity(0.15) : _card,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: selected ? col : _border, width: selected ? 1.5 : 1),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              if (selected) Icon(Icons.check_circle, color: col, size: 13),
-              if (selected) const SizedBox(width: 4),
-              Expanded(child: Text(label,
-                style: GoogleFonts.inter(color: selected ? col : _text, fontSize: 12, fontWeight: FontWeight.bold),
-                overflow: TextOverflow.ellipsis)),
-            ]),
-            const SizedBox(height: 2),
-            Text(sub, style: GoogleFonts.inter(color: _muted, fontSize: 9)),
-          ]),
-        ),
-      ),
-    );
-  }
   Widget _actionBtn(IconData icon, String title, String sub, Color col, VoidCallback onTap) =>
     GestureDetector(
       onTap: onTap,

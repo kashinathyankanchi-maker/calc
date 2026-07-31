@@ -31,12 +31,15 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Download Kannada tessdata only (fast variant, ~3MB)
+      - name: Download Kannada + English tessdata (fast variant, ~6MB total)
         run: |
           mkdir -p assets/tessdata
-          echo "Downloading Kannada tessdata (fast variant ~3MB)..."
+          echo "Downloading Kannada tessdata..."
           curl -L "https://github.com/tesseract-ocr/tessdata_fast/raw/main/kan.traineddata" \
                -o assets/tessdata/kan.traineddata
+          echo "Downloading English tessdata..."
+          curl -L "https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata" \
+               -o assets/tessdata/eng.traineddata
           echo "Done:"
           ls -lh assets/tessdata/
 
