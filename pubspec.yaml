@@ -32,6 +32,7 @@ flutter:
   assets:
     - assets/icon/app_icon.jpg
     - assets/tessdata/
+    - assets/tessdata_config.json
 
 flutter_launcher_icons:
   android: "kashi"
