@@ -58,13 +58,16 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
       final img = await ImagePicker().pickImage(source: src, maxWidth: 2048, maxHeight: 2048, imageQuality: 90);
       if (img == null) { setState(() => _isScanning = false); return; }
 
-      // ── Tesseract OCR (offline, mixed Kannada+English) ──
+      // ── Tesseract OCR (offline, tuned for Kannada tables) ──
+      // Note: We use only 'kan' because the Kannada language pack already includes
+      // English letters/numbers. Adding '+eng' causes the engine to hallucinate
+      // English words out of Kannada shapes, producing gibberish.
       final raw = await FlutterTesseractOcr.extractText(
         img.path,
-        language: 'kan+eng',
+        language: 'kan', 
         args: {
           'preserve_interword_spaces': '1',
-          'psm': '6'
+          'psm': '6' // PSM 6 = uniform block of text (best for tables)
         },
       ) ?? '';
 
@@ -83,7 +86,10 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
 
   // ── Smart Table Parser ──────────────────────────────────────────────────────
   void _parseToTable(String text) {
-    final lines = text.split(RegExp(r'[\n\r]+')).map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+    // Clean up common Tesseract noise caused by table grid lines (| and _)
+    final cleanedText = text.replaceAll(RegExp(r'[|_]+'), ' ');
+
+    final lines = cleanedText.split(RegExp(r'[\n\r]+')).map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
     if (lines.isEmpty) return;
 
     // Split each line into cells using 3+ spaces or tabs as delimiter
