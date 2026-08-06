@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -63,8 +63,14 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
     // 1. Grayscale — removes colour noise
     decoded = img.grayscale(decoded);
 
-    // 2. Auto contrast stretch — makes dark text blacker, white bg whiter
-    decoded = img.autoLevels(decoded);
+    // 2. Boost contrast + brightness (image v4 API: adjustColor)
+    //    contrast: >1 = higher contrast, blacks get blacker, whites whiter
+    //    brightness: slight positive lift helps faded/low-light photos
+    decoded = img.adjustColor(
+      decoded,
+      contrast: 1.6,
+      brightness: 1.1,
+    );
 
     // 3. Sharpen — makes character edges crisper for OCR
     decoded = img.convolution(
@@ -72,6 +78,7 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
       filter: [0, -1, 0, -1, 5, -1, 0, -1, 0],
       div: 1,
     );
+
 
     // Save preprocessed image to a temp file
     final dir      = await Directory.systemTemp.createTemp('ocr_');
