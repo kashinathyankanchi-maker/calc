@@ -1,7 +1,8 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:flutter_tesseract_ocr/flutter_tesseract_ocr.dart';
@@ -51,25 +52,60 @@ class _DocumentConverterScreenState extends State<DocumentConverterScreen>
   @override
   void dispose() { _fadeCtrl.dispose(); super.dispose(); }
 
+  // ── Image Preprocessor ──────────────────────────────────────────────────────
+  // Converts the picked image to grayscale, stretches contrast, then sharpens.
+  // This dramatically improves Tesseract accuracy on low-light/camera photos.
+  Future<String> _preprocessImage(String sourcePath) async {
+    final bytes   = await File(sourcePath).readAsBytes();
+    var   decoded = img.decodeImage(bytes);
+    if (decoded == null) return sourcePath; // fallback: use original
+
+    // 1. Grayscale — removes colour noise
+    decoded = img.grayscale(decoded);
+
+    // 2. Auto contrast stretch — makes dark text blacker, white bg whiter
+    decoded = img.autoLevels(decoded);
+
+    // 3. Sharpen — makes character edges crisper for OCR
+    decoded = img.convolution(
+      decoded,
+      filter: [0, -1, 0, -1, 5, -1, 0, -1, 0],
+      div: 1,
+    );
+
+    // Save preprocessed image to a temp file
+    final dir      = await Directory.systemTemp.createTemp('ocr_');
+    final outPath  = '${dir.path}/preprocessed.png';
+    await File(outPath).writeAsBytes(img.encodePng(decoded));
+    return outPath;
+  }
+
   // ── OCR Scan ────────────────────────────────────────────────────────────────
   Future<void> _scan(ImageSource src) async {
     setState(() { _isScanning = true; _errorMsg = ''; });
     try {
-      final img = await ImagePicker().pickImage(source: src, maxWidth: 2048, maxHeight: 2048, imageQuality: 90);
-      if (img == null) { setState(() => _isScanning = false); return; }
+      final picked = await ImagePicker().pickImage(
+        source: src, maxWidth: 2048, maxHeight: 2048, imageQuality: 95);
+      if (picked == null) { setState(() => _isScanning = false); return; }
 
-      // ── Tesseract OCR (offline, tuned for Kannada tables) ──
-      // Note: We use only 'kan' because the Kannada language pack already includes
-      // English letters/numbers. Adding '+eng' causes the engine to hallucinate
-      // English words out of Kannada shapes, producing gibberish.
+      // Preprocess: grayscale + auto-contrast + sharpen
+      final processedPath = await _preprocessImage(picked.path);
+
+      // ── Tesseract OCR with both Kannada + English ──
+      // psm 6 = uniform block of text (best for tables)
+      // oem 1 = LSTM neural network engine (most accurate)
       final raw = await FlutterTesseractOcr.extractText(
-        img.path,
-        language: 'kan', 
+        processedPath,
+        language: 'kan+eng',
         args: {
           'preserve_interword_spaces': '1',
-          'psm': '6' // PSM 6 = uniform block of text (best for tables)
+          'psm': '6',
+          'oem': '1',
         },
       ) ?? '';
+
+      // Clean up temp file
+      try { await File(processedPath).delete(); } catch (_) {}
 
       setState(() { _rawText = raw.trim(); });
       if (raw.trim().isEmpty) {
